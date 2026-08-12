@@ -1,26 +1,117 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Brand accents — state markers, never decoration. */
+  --color-risk: var(--risk); /* urgency, overdue, blockers */
+  --color-risk-soft: var(--risk-soft);
+  --color-gold: var(--gold); /* achievement, completion, evidence */
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-ink: var(--gold-ink); /* gold that passes contrast as text */
+
+  --shadow-ambient: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+
+  /* Controls 6px (radius-lg), cards 8px (radius-xl). */
+  --radius-sm: 4px;
+  --radius-md: 5px;
+  --radius-lg: var(--radius);
+  --radius-xl: 8px;
+  --radius-2xl: 12px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --background: #fafafa;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0f0;
+  --secondary-foreground: #000000;
+  --muted: #f2f2f2;
+  --muted-foreground: #6b6b6b;
+  --accent: #f2f2f2;
+  --accent-foreground: #000000;
+  --destructive: #841818;
+  --border: #e8e8e8;
+  --input: #e8e8e8;
+  --ring: #000000;
+  --chart-1: #000000;
+  --chart-2: #e0bb20;
+  --chart-3: #841818;
+  --chart-4: #b5b5b5;
+  --chart-5: #6b6b6b;
+  --radius: 6px;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #000000;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #efefef;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #e8e8e8;
+  --sidebar-ring: #000000;
+
+  --risk: #841818;
+  --risk-soft: #f6ecec;
+  --gold: #e0bb20;
+  --gold-soft: #f9f3d9;
+  --gold-ink: #93790e;
+
+  --font-sans: "Helvetica Neue", Helvetica, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  ::selection {
+    background: #f0e3ab;
+  }
 }
