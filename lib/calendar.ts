@@ -1,12 +1,9 @@
-import type { Course, CriticalItem, DayEvent, Milestone, Profile } from "./schemas";
+import type { Course, CriticalItem, DayEvent, GapProject, Milestone, Profile, TopicCheck } from "./schemas";
 import { addDaysISO, todayISO } from "./dates";
 import { AID_APPLY_LEAD_DAYS, AID_WINDOW_DAYS, courseEndISO, courseStartISO, isPreWorkspace } from "./aid";
-import {
-  isWarmupPhase,
-  MAIN_DAILY_MINUTES,
-  ONGOING_WEEKLY_MINUTES,
-  WARMUP_BLOCK_MINUTES,
-} from "./schedule";
+import { STUDY_CAPACITY } from "./schedule";
+import { generateStudyPlan, type PlanItem, type SessionType } from "./study-plan";
+import type { SyllabusSource } from "./course-syllabus";
 
 /* Everything the Learning calendar can show, derived on the fly from the
    stores — only study logs and notes (dayEvents) are stored as such. */
@@ -33,9 +30,16 @@ export type CalEvent = {
   /** True for real deadlines — these pulse when inside 7 days. */
   deadline: boolean;
   courseId: string | null;
-  refKind: "course" | "milestone" | "critical" | "dayEvent";
+  refKind: "course" | "milestone" | "critical" | "dayEvent" | "gapProject" | "plan";
   refId: string;
   minutes?: number | null;
+  /** Present on generated plan sessions: the day's unit of work. */
+  session?: {
+    type: SessionType;
+    items: PlanItem[];
+    output: string;
+    source: SyllabusSource | null;
+  };
 };
 
 export function deriveCalendarEvents(args: {
@@ -43,9 +47,11 @@ export function deriveCalendarEvents(args: {
   milestones: Milestone[];
   critical: CriticalItem[];
   dayEvents: DayEvent[];
+  topicProgress: TopicCheck[];
+  gapProjects: GapProject[];
   profile: Profile;
 }): CalEvent[] {
-  const { courses, milestones, critical, dayEvents, profile } = args;
+  const { courses, milestones, critical, dayEvents, topicProgress, gapProjects, profile } = args;
   const out: CalEvent[] = [];
 
   for (const c of courses) {
@@ -100,6 +106,16 @@ export function deriveCalendarEvents(args: {
         type: "critical", tone: "risk", deadline: true,
         courseId: null, refKind: "critical", refId: item.id,
       });
+      /* Lead-time reminders so paperwork starts before it turns urgent. */
+      for (const lead of [14, 3] as const) {
+        const d = addDaysISO(item.deadline, -lead);
+        if (d < profile.workspaceCreatedAt) continue;
+        out.push({
+          id: `cp-${item.id}-t${lead}`, date: d, title: `T-${lead} · ${item.title}`,
+          type: "critical", tone: "waived", deadline: false,
+          courseId: null, refKind: "critical", refId: item.id,
+        });
+      }
     }
   }
 
@@ -111,37 +127,36 @@ export function deriveCalendarEvents(args: {
     });
   }
 
-  /* Daily fill — one planned session per course per day, derived from the
-     course windows (never stored). One subject per day: the main path owns
-     Mon–Sat (90 min); Sunday belongs to the warm-up deep block (3 h) and,
-     once that track ends, to the open-ended self-study hour.
-     Pushed last so start/deadline/milestone dots win the 3-dot day preview.
-     A day where that course's study time is already logged shows the log
-     instead of the plan. */
+  /* Daily fill — the generated study plan (lib/study-plan.ts): every
+     session names its exact unit of work, typed Learn / Practice / Apply /
+     Retrieve / Ship / Open, derived from the course windows, the syllabus
+     content and the check state; never stored. Pushed last so start /
+     deadline / milestone dots win the 3-dot day preview. A day whose
+     study time is already logged shows the log instead of the plan. */
   const today = todayISO();
-  const horizon = addMonthsISO(profile.timelineStart, profile.timelineMonths) + "-01";
   const logged = new Set(
-    dayEvents.filter((e) => e.kind === "study" && e.courseId).map((e) => `${e.date}:${e.courseId}`)
+    dayEvents.filter((e) => e.kind === "study").map((e) => `${e.date}:${e.courseId}`)
   );
-  for (const c of courses) {
-    if (c.status === "completed") continue;
-    const start = courseStartISO(profile, c);
-    if (!start) continue;
-    const warm = isWarmupPhase(c.phase);
-    const open = c.durationWeeks === null;
-    const end = open ? horizon : (courseEndISO(profile, c) as string);
-    const sundayOwned = warm || open;
-    for (let d = start < today ? today : start; d < end && d < horizon; d = addDaysISO(d, 1)) {
-      const sunday = new Date(d + "T00:00:00Z").getUTCDay() === 0;
-      if (sundayOwned ? !sunday : sunday) continue;
-      if (logged.has(`${d}:${c.id}`)) continue;
-      out.push({
-        id: `plan-${c.id}-${d}`, date: d, title: `Plan: ${c.title}`,
-        type: "plan_study", tone: "waived", deadline: false,
-        courseId: c.id, refKind: "course", refId: c.id,
-        minutes: open ? ONGOING_WEEKLY_MINUTES : warm ? WARMUP_BLOCK_MINUTES : MAIN_DAILY_MINUTES,
-      });
-    }
+  const plan = generateStudyPlan(profile, courses, STUDY_CAPACITY, today, {
+    checkedLessons: new Set(topicProgress.map((t) => t.id)),
+    gapProjects,
+  });
+  for (const s of plan.sessions) {
+    if (s.courseId && logged.has(`${s.date}:${s.courseId}`)) continue;
+    if (!s.courseId && logged.has(`${s.date}:null`)) continue;
+    out.push({
+      id: `plan-${s.id}`,
+      date: s.date,
+      title: s.title,
+      type: "plan_study",
+      tone: "waived",
+      deadline: false,
+      courseId: s.courseId,
+      refKind: s.courseId ? "course" : s.gapProjectId ? "gapProject" : "plan",
+      refId: s.courseId ?? s.gapProjectId ?? s.id,
+      minutes: s.minutes,
+      session: { type: s.type, items: s.items, output: s.output, source: s.source },
+    });
   }
 
   return out;
