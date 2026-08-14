@@ -57,7 +57,15 @@ type Seed = { [K in keyof CollectionType]: Array<Omit<CollectionType[K], "create
    The two self-study rows are now guided Coursera courses: "Use the Index,
    Luke" → PostgreSQL for Everybody (Michigan), and "System design self-study"
    → Building Modern Distributed Systems (Packt) + Software Architecture
-   (Alberta). Only the OWASP pass remains self-directed, by request. */
+   (Alberta). Only the OWASP pass remains self-directed, by request.
+
+   v12 — CAPACITY-HONEST. The hours were audited against real capacity
+   (12 h/wk) and two courses are cut outright rather than pretending they
+   fit: GenAI for Software Development (~34 h, lowest signal) and the
+   Machine Learning Specialization (~95 h, optional depth). PostgreSQL gets
+   14 weeks, the RAG certificate 11. Saturdays belong to the gap-project
+   track (gp-adr → gp-rag → gp-llm-feature → gp-sre; lib/study-plan.ts),
+   so the main path runs Mon–Fri. */
 
 
 /** Deterministic module rows from syllabus titles — ids are stable so the
@@ -101,7 +109,7 @@ export const seedCourses: Seed["courses"] = [
     completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
 
-  /* -------- Phase 2 · GenAI engineering (M2–M13) --------
+  /* -------- Phase 2 · GenAI engineering (M2–M8) --------
      MOVED UP FROM M6. This is the single highest-signal credential for the
      target roles and it now lands in Dec 2026 — two months BEFORE the first
      application wave instead of one month after it. Course 10 is a capstone;
@@ -109,7 +117,7 @@ export const seedCourses: Seed["courses"] = [
      together. */
   { id: "co-ibm-rag-agentic", tags: ["ai", "rag", "agents"], phase: "GenAI engineering",
     title: "IBM RAG and Agentic AI Professional Certificate",
-    provider: "IBM", duration: "10 courses · ~2 mo", durationWeeks: 8, targetStartMonth: 2, plannedStartDate: null,
+    provider: "IBM", duration: "10 courses · ~3 mo", durationWeeks: 11, targetStartMonth: 2, plannedStartDate: null,
     status: "not_started", hiringWeight: "high",
     url: "https://www.coursera.org/professional-certificates/ibm-rag-and-agentic-ai",
     modules: mods("co-ibm-rag-agentic", [
@@ -146,24 +154,8 @@ export const seedCourses: Seed["courses"] = [
     ]),
     completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
-  /* MOVED BACK FROM M2. 95 h is the largest single block in the plan and the
-     least load-bearing for applied AI roles — nobody screening for a RAG
-     engineer asks you to derive backprop. Running it at M2 delayed every
-     piece of evidence by ten weeks. Here it deepens the story while
-     applications are already in flight, and it is the first thing to drop
-     if an offer lands early. */
-  { id: "co-ml-spec", tags: ["ai", "ml"], phase: "GenAI engineering",
-    title: "Machine Learning Specialization",
-    provider: "DeepLearning.AI + Stanford", duration: "3 courses · ~95 h", durationWeeks: 10, targetStartMonth: 11, plannedStartDate: null,
-    status: "not_started", hiringWeight: "medium",
-    url: "https://www.coursera.org/specializations/machine-learning-introduction",
-    modules: mods("co-ml-spec", [
-      "Course 1 · Supervised Machine Learning: Regression and Classification",
-      "Course 2 · Advanced Learning Algorithms",
-      "Course 3 · Unsupervised Learning, Recommenders, Reinforcement Learning",
-    ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
-    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  /* v12: Machine Learning Specialization (95 h) CUT — optional depth that
+     didn't survive the capacity audit. Its seed milestone went with it. */
 
   /* -------- Phase 3 · Interview & landing (M5–M6 · Dec 2026–Jan 2027) --------
      NOTE: these two now run BEFORE the Production & cloud phase. That is
@@ -204,9 +196,10 @@ export const seedCourses: Seed["courses"] = [
     completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
 
-  /* -------- Phase 4 · Production & cloud (M9–M13 · Apr–Aug 2027) --------
-     Runs while applications are live. Everything in this phase is droppable
-     the moment an offer is signed. */
+  /* -------- Phase 4 · Production & cloud (M9 · Apr 2027) --------
+     Runs while applications are live; droppable the moment an offer is
+     signed. v12: GenAI for Software Development (34 h) CUT — it taught
+     using AI to write code, not building AI systems. */
   { id: "co-sre-gcp", tags: ["devops", "sre"], phase: "Production & cloud",
     title: "Cloud DevOps Engineer (Google Cloud cert prep)",
     provider: "Google Cloud", duration: "4 courses · ~36 h", durationWeeks: 4, targetStartMonth: 9, plannedStartDate: null,
@@ -220,22 +213,6 @@ export const seedCourses: Seed["courses"] = [
     ]),
     completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
-  /* MOVED BACK FROM M4. Lowest hiring signal in the plan for AI-engineer
-     roles — it teaches using AI to write code, not building AI systems.
-     Genuinely optional; cut it without guilt if the pipeline is busy. */
-  { id: "co-genai-swdev", tags: ["ai", "dev-workflow"], phase: "Production & cloud",
-    title: "Generative AI for Software Development",
-    provider: "DeepLearning.AI", duration: "3 courses · ~34 h", durationWeeks: 4, targetStartMonth: 13, plannedStartDate: null,
-    status: "not_started", hiringWeight: "medium",
-    url: "https://www.coursera.org/specializations/generative-ai-for-software-development",
-    modules: mods("co-genai-swdev", [
-      "Course 1 · Introduction to Generative AI for Software Development",
-      "Course 2 · Team Software Engineering with AI",
-      "Course 3 · AI-Powered Software and System Design",
-    ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
-    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
-
   /* -------- Warm-up · parallel track (M1–M12, ~3 h/week on top) --------
      8 years of experience that is really 2 years × 4 loops: these backfill
      the fundamentals a compounding 8 years would have built. Every item ends
@@ -290,7 +267,7 @@ export const seedCourses: Seed["courses"] = [
      already covers it. */
   { id: "co-warmup-db", tags: ["fundamentals", "databases"], phase: "Warm-up",
     title: "PostgreSQL for Everybody",
-    provider: "University of Michigan", duration: "4 courses · ~57 h", durationWeeks: 12, targetStartMonth: 3, plannedStartDate: null,
+    provider: "University of Michigan", duration: "4 courses · ~57 h", durationWeeks: 14, targetStartMonth: 3, plannedStartDate: null,
     status: "not_started", hiringWeight: "high",
     url: "https://www.coursera.org/specializations/postgresql-for-everybody",
     modules: mods("co-warmup-db", [
@@ -328,10 +305,10 @@ export const seedCourses: Seed["courses"] = [
     status: "not_started", hiringWeight: "high",
     url: "https://www.coursera.org/learn/software-architecture",
     modules: mods("co-warmup-architecture", [
-      "Module 1 · Architectural styles and their trade-offs",
-      "Module 2 · Representing architecture — UML and other visual tools",
-      "Module 3 · Quality attributes and architectural drivers",
-      "Module 4 · Capstone — architecture documentation",
+      "Module 1 · UML architecture diagrams (4+1 views)",
+      "Module 2 · Architectural styles",
+      "Module 3 · Architecture in practice — quality attributes",
+      "Module 4 · Capstone challenge",
       "Apply · Re-document one MML system as an architecture ADR",
     ]),
     completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
@@ -407,9 +384,7 @@ export const seedMilestones: Seed["milestones"] = [
   { id: "ms-2027-06", month: "2027-06", kind: "milestone", status: "upcoming", tags: [],
     title: "GenAI feature live at work + Cloud DevOps cert",
     detail: "Real users, real metrics, a Google Cloud cert on top. The strongest single CV bullet in the whole plan." },
-  { id: "ms-2027-08", month: "2027-08", kind: "milestone", status: "upcoming", tags: [],
-    title: "Cert #4: Machine Learning Specialization (optional)",
-    detail: "Depth for credibility, not for entry. Drop it without hesitation if the pipeline gets busy — it was never the thing getting interviews." },
+  /* v12: ms-2027-08 (ML Specialization cert) removed with its course. */
   { id: "ms-2027-09", month: "2027-09", kind: "milestone", status: "upcoming", tags: [],
     title: "Target: signed offer",
     detail: "Seven months of applying with evidence in hand. Negotiate with thresholds in mind: DE Blue Card €45,934/yr · NL HSM monthly floor." },
@@ -420,10 +395,9 @@ export const seedMilestones: Seed["milestones"] = [
     title: "Relocation window", detail: "Land December 2027 – February 2028." },
 ];
 
-const seed: Seed = {
-  /* ---------------- Action Tracker ---------------- */
-
-  gapProjects: [
+/* Exported for the v12 migration merge. The Saturday project track in
+   lib/study-plan.ts schedules these four in sequence. */
+export const seedGapProjects: Seed["gapProjects"] = [
     {
       id: "gp-adr", tags: ["writing", "architecture", "quick-win"],
       title: "Publish 3 architecture decision records",
@@ -451,15 +425,8 @@ const seed: Seed = {
       estWeeks: "3–4 wks", targetMetric: "p95 latency + cost/request dashboards",
       status: "not_started", progress: 0, starred: false,
     },
-    {
-      id: "gp-nextjs", tags: ["frontend", "typescript"],
-      title: "Next.js + strict TypeScript migration",
-      gap: "Modern React stack depth beyond CRA-era patterns",
-      scope: "Migrate an existing React app to Next.js App Router under strict TypeScript; measure before/after.",
-      techStack: ["Next.js", "TypeScript", "Tailwind"],
-      estWeeks: "3–4 wks", targetMetric: "type coverage % + Lighthouse score",
-      status: "not_started", progress: 0, starred: false,
-    },
+    /* v12: gp-nextjs CUT — the lowest-leverage project; Saturdays go to
+       evidence that moves the AI-engineer story. */
     {
       id: "gp-sre", tags: ["devops", "sre", "platform"],
       title: "Kubernetes + observability + Terraform + SLOs",
@@ -469,7 +436,12 @@ const seed: Seed = {
       estWeeks: "6–8 wks", targetMetric: "documented SLO with error budget",
       status: "not_started", progress: 0, starred: false,
     },
-  ],
+];
+
+const seed: Seed = {
+  /* ---------------- Action Tracker ---------------- */
+
+  gapProjects: seedGapProjects,
 
   milestones: seedMilestones,
 
@@ -516,7 +488,7 @@ const seed: Seed = {
   weekly: [
     { id: "wk-1", weekStart: weekStartISO(), title: "Draft ADR #1 — Stripe points ledger design",
       refType: "gap_project", refId: "gp-adr", done: true, carriedOver: 0, tags: [] },
-    { id: "wk-2", weekStart: weekStartISO(), title: "Block the daily 90-min slot + Sunday 3 h deep block",
+    { id: "wk-2", weekStart: weekStartISO(), title: "Block the daily 90-min slot, Saturday project block + Sunday 3 h deep block",
       refType: "custom", refId: null, done: false, carriedOver: 0, tags: [] },
     { id: "wk-3", weekStart: weekStartISO(), title: "Book passport renewal appointment",
       refType: "critical", refId: "cp-passport", done: false, carriedOver: 1, tags: [] },

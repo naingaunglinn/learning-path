@@ -9,7 +9,7 @@ import {
   Profile,
   ProfileSchema,
 } from "./schemas";
-import { buildSeedData, seedCourses, seedMilestones, seedProfile } from "./seed-data";
+import { buildSeedData, seedCourses, seedGapProjects, seedMilestones, seedProfile } from "./seed-data";
 import { rescheduleFrom } from "./schedule";
 import { newId } from "./id";
 
@@ -57,8 +57,14 @@ const ACTIVITY_CAP = 50;
    v11: re-runs the v10 backfill. A tab still running pre-v10 code strips
    the modules field on any write (Zod drops unknown keys), leaving a
    v10-stamped store with empty checklists; the backfill is idempotent, so
-   healthy stores pass through untouched. */
-const SCHEMA_VERSION = 11;
+   healthy stores pass through untouched.
+   v12: the capacity-honest resequence (2026-08). The re-authored seed
+   (evidence-first course order, two courses + one gap project + one
+   milestone cut, PostgreSQL 14 wks / RAG cert 11 wks) merges into existing
+   stores v5-style — seed content wins, user progress fields and per-module
+   check state survive by id — then the chains replan without restarting
+   the in-progress course. */
+const SCHEMA_VERSION = 12;
 
 /* Roadmap re-sequencing applied to the five known seed courses on migration. */
 const V3_SEED_COURSE_MONTHS: Record<string, number> = {
@@ -178,8 +184,9 @@ function migrateV5toV6() {
 }
 
 /** Stamp day-precise starts by replanning the remaining path from today.
-    Runs for v6 -> v7 and again for v7 -> v8 (semantics change). */
-function replanCoursesFromToday() {
+    Runs for v6 -> v7 and again for v7 -> v8 (semantics change); v12 reuses
+    it with restartInProgress:false so an underway course keeps its window. */
+function replanCoursesFromToday(opts: { restartInProgress?: boolean } = {}) {
   try {
     const rows: Array<Record<string, unknown>> = JSON.parse(backend.read(`${NS}:courses`) ?? "[]");
     const profileRaw = JSON.parse(backend.read(PROFILE_KEY) ?? "{}");
@@ -187,7 +194,7 @@ function replanCoursesFromToday() {
       timelineStart: typeof profileRaw?.timelineStart === "string" ? profileRaw.timelineStart : "2026-08",
       timelineMonths: typeof profileRaw?.timelineMonths === "number" ? profileRaw.timelineMonths : 18,
     };
-    const patches = rescheduleFrom(profile, rows as never, new Date().toISOString().slice(0, 10));
+    const patches = rescheduleFrom(profile, rows as never, new Date().toISOString().slice(0, 10), opts);
     const byId = new Map(patches.map((p) => [p.id, p.patch]));
     const now = new Date().toISOString();
     for (const row of rows) {
@@ -287,6 +294,101 @@ function healStrippedModules() {
   }
 }
 
+/* Rows v12 removes: two courses cut for capacity honesty, the milestone
+   that celebrated one of them, and the lowest-leverage gap project. A row
+   the user actually started is never removed. */
+const V12_REMOVED_IDS: Partial<Record<CollectionKey, string[]>> = {
+  courses: ["co-genai-swdev", "co-ml-spec"],
+  gapProjects: ["gp-nextjs"],
+  milestones: ["ms-2027-08"],
+};
+
+/** The v12 seed merge: seed content wins, user progress survives by id
+    (course/gap/milestone status fields, and per-module check state), rows
+    the seed no longer carries are dropped unless started, user-added rows
+    pass through. Ends with an auto-style replan + the module backfill. */
+function migrateV11toV12() {
+  const now = new Date().toISOString();
+
+  function merge(
+    key: "courses" | "milestones" | "gapProjects",
+    seedRows: ReadonlyArray<Record<string, unknown> & { id: string }>,
+    progressFields: string[],
+    started: (row: Record<string, unknown>) => boolean
+  ) {
+    let old: Array<Record<string, unknown>> = [];
+    try {
+      old = JSON.parse(backend.read(`${NS}:${key}`) ?? "[]");
+    } catch {
+      /* unreadable — rebuild this collection from the seed alone */
+    }
+    const oldById = new Map(old.map((r) => [r.id as string, r]));
+    const seedIds = new Set(seedRows.map((r) => r.id));
+    const removed = new Set(V12_REMOVED_IDS[key] ?? []);
+
+    const merged: Array<Record<string, unknown>> = seedRows.map((row) => {
+      const prev = oldById.get(row.id);
+      const kept = Object.fromEntries(
+        progressFields.filter((f) => prev && prev[f] !== undefined).map((f) => [f, prev![f]])
+      );
+      const next: Record<string, unknown> = {
+        createdAt: prev?.createdAt ?? now,
+        updatedAt: now,
+        ...row,
+        ...kept,
+      };
+      /* Module check state survives by module id; new modules arrive
+         unchecked. backfillCourseModules re-stamps completed courses. */
+      if (key === "courses" && prev && Array.isArray(prev.modules) && Array.isArray(next.modules)) {
+        const prevMods = new Map(
+          (prev.modules as Array<Record<string, unknown>>).map((m) => [m.id as string, m])
+        );
+        next.modules = (next.modules as Array<Record<string, unknown>>).map((m) => {
+          const p = prevMods.get(m.id as string);
+          return p
+            ? { ...m, done: p.done === true, completedDate: (p.completedDate as string | null) ?? null }
+            : m;
+        });
+      }
+      return next;
+    });
+    for (const row of old) {
+      const id = row.id as string;
+      if (seedIds.has(id)) continue;
+      if (removed.has(id) && !started(row)) continue;
+      merged.push(row);
+    }
+    backend.write(`${NS}:${key}`, JSON.stringify(merged));
+  }
+
+  merge(
+    "courses",
+    seedCourses as never,
+    ["status", "completedDate"],
+    (r) => r.status === "in_progress" || r.status === "completed"
+  );
+  merge("milestones", seedMilestones as never, ["status"], (r) => r.status === "done");
+  merge(
+    "gapProjects",
+    seedGapProjects as never,
+    ["status", "progress", "starred"],
+    (r) => r.status === "in_progress" || r.status === "shipped"
+  );
+
+  /* Lesson checks for removed courses are dead weight — drop them. */
+  try {
+    const dead = V12_REMOVED_IDS.courses ?? [];
+    const rows: Array<Record<string, unknown>> = JSON.parse(backend.read(`${NS}:topicProgress`) ?? "[]");
+    const kept = rows.filter((r) => !dead.some((d) => String(r.id).startsWith(d + "-")));
+    if (kept.length !== rows.length) backend.write(`${NS}:topicProgress`, JSON.stringify(kept));
+  } catch {
+    /* collection absent on pre-lesson stores — nothing to clean */
+  }
+
+  replanCoursesFromToday({ restartInProgress: false });
+  migrateV9toV10();
+}
+
 const isBrowser = typeof window !== "undefined";
 
 const backend = {
@@ -356,6 +458,7 @@ export function ensureSeeded() {
         /* <= 10, not <= 9: v11 re-runs the same idempotent backfill to heal
            stores whose checklists were stripped by a stale pre-v10 tab. */
         if (version <= 10) migrateV9toV10();
+        if (version <= 11) migrateV11toV12();
         backend.write(
           META_KEY,
           JSON.stringify({ migratedAt: new Date().toISOString(), schemaVersion: SCHEMA_VERSION })

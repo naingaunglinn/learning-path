@@ -142,7 +142,7 @@ export function CourseDetail() {
     ? { minutes: ONGOING_WEEKLY_MINUTES, copy: "1 h · Sundays" }
     : warm
       ? { minutes: WARMUP_BLOCK_MINUTES, copy: "3 h · one Sunday block" }
-      : { minutes: MAIN_DAILY_MINUTES, copy: "90 min · Mon–Sat" };
+      : { minutes: MAIN_DAILY_MINUTES, copy: "90 min · Mon–Fri" };
 
   const slot =
     course.targetStartMonth !== null
