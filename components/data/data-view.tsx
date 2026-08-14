@@ -54,23 +54,23 @@ function ProfileCard() {
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pf-name">Name</Label>
             <Input id="pf-name" value={current.name} onChange={(e) => set("name", e.target.value)} />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pf-role">Role</Label>
             <Input id="pf-role" value={current.role} onChange={(e) => set("role", e.target.value)} />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pf-company">Company</Label>
             <Input id="pf-company" value={current.company} onChange={(e) => set("company", e.target.value)} />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pf-location">Location</Label>
             <Input id="pf-location" value={current.location} onChange={(e) => set("location", e.target.value)} />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pf-target-date">Target date</Label>
             <Input
               id="pf-target-date"
@@ -79,16 +79,16 @@ function ProfileCard() {
               onChange={(e) => set("targetDate", e.target.value)}
             />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pf-target-label">Target label</Label>
             <Input id="pf-target-label" value={current.targetLabel} onChange={(e) => set("targetLabel", e.target.value)} />
           </div>
         </div>
-        <div className="grid gap-1.5">
+        <div className="grid gap-2">
           <Label htmlFor="pf-stack">Stack (comma-separated)</Label>
           <Textarea id="pf-stack" rows={2} value={joinList(current.stack)} onChange={(e) => set("stack", parseList(e.target.value))} />
         </div>
-        <div className="grid gap-1.5">
+        <div className="grid gap-2">
           <Label htmlFor="pf-roles">Target roles (comma-separated, ranked)</Label>
           <Textarea id="pf-roles" rows={2} value={joinList(current.targetRoles)} onChange={(e) => set("targetRoles", parseList(e.target.value))} />
         </div>
@@ -209,22 +209,22 @@ export function DataView() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Reset the whole workspace?</AlertDialogTitle>
+                  <AlertDialogTitle>Wipe workspace and restore seed data?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Every edit since first run is deleted and the original seed comes back. Export a
-                    backup first if in doubt.
+                    Everything you’ve logged is deleted. Export a backup first if you want to keep
+                    it.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>Keep my data</AlertDialogCancel>
                   <AlertDialogAction
                     className="bg-risk text-white hover:bg-risk/90"
                     onClick={() => {
                       resetToSeed();
-                      toast.success("Workspace reset to seed data");
+                      toast.success("Workspace wiped — seed data restored");
                     }}
                   >
-                    Reset everything
+                    Wipe and reset
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

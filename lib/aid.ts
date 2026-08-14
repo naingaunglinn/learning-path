@@ -13,29 +13,60 @@ export const AID_PENDING_CEILING = 11;
 export const AID_APPLY_LEAD_DAYS = 21;
 
 /** YYYY-MM for a 1-based roadmap month index. */
-export function monthISOForIndex(profile: Profile, index1: number): string {
+export function monthISOForIndex(profile: Pick<Profile, "timelineStart">, index1: number): string {
   const [y, m] = profile.timelineStart.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1 + (index1 - 1), 1)).toISOString().slice(0, 7);
 }
 
 /** 1-based roadmap index of the current calendar month (may fall outside 1..timelineMonths). */
-export function currentMonthIndex(profile: Profile): number {
+export function currentMonthIndex(profile: Pick<Profile, "timelineStart">): number {
   const [sy, sm] = profile.timelineStart.split("-").map(Number);
   const now = new Date();
   return (now.getFullYear() - sy) * 12 + (now.getMonth() + 1 - sm) + 1;
 }
 
-/** First day of the course's target start month. */
-export function courseStartISO(profile: Profile, course: Pick<Course, "targetStartMonth">): string {
+/** The course's start date: the day-precise replanned date when set,
+    otherwise the first day of its target month. Null = unscheduled. */
+export function courseStartISO(
+  profile: Pick<Profile, "timelineStart">,
+  course: Pick<Course, "targetStartMonth"> & { plannedStartDate?: string | null }
+): string | null {
+  if (course.plannedStartDate) return course.plannedStartDate;
+  if (course.targetStartMonth === null) return null;
   return monthISOForIndex(profile, course.targetStartMonth) + "-01";
 }
 
+/** Target finish date: start + durationWeeks. Null when either is unset. */
+export function courseEndISO(
+  profile: Pick<Profile, "timelineStart">,
+  course: Pick<Course, "targetStartMonth" | "durationWeeks"> & { plannedStartDate?: string | null }
+): string | null {
+  const start = courseStartISO(profile, course);
+  if (!start || course.durationWeeks === null) return null;
+  return addDaysISO(start, course.durationWeeks * 7);
+}
+
+/** 1-based week of the course the calendar says we're in (clamped to plan
+    length). Null when the course hasn't started or has no plan length. */
+export function courseWeekOf(
+  profile: Pick<Profile, "timelineStart">,
+  course: Pick<Course, "targetStartMonth" | "durationWeeks"> & { plannedStartDate?: string | null }
+): number | null {
+  const start = courseStartISO(profile, course);
+  if (!start || course.durationWeeks === null) return null;
+  const elapsed = Math.floor((Date.now() - Date.parse(start)) / (7 * 86_400_000)) + 1;
+  if (elapsed < 1) return null;
+  return Math.min(elapsed, course.durationWeeks);
+}
+
 /** Latest sensible date to file the aid application (start month − 21 days).
-    Null once it no longer applies (not aid-funded, already applied, or done). */
+    Null once it no longer applies (not aid-funded, already applied, done,
+    or the course is unscheduled). */
 export function aidApplyByDate(profile: Profile, course: Course): string | null {
   if (!course.aidApplicable || course.status === "completed") return null;
   if (course.financialAidStatus !== "not_applied") return null;
-  return addDaysISO(courseStartISO(profile, course), -AID_APPLY_LEAD_DAYS);
+  const start = courseStartISO(profile, course);
+  return start ? addDaysISO(start, -AID_APPLY_LEAD_DAYS) : null;
 }
 
 type AidFields = Pick<Course, "aidApplicable" | "aidApprovedDate" | "status" | "completedDate">;
@@ -63,11 +94,20 @@ export function pendingAidCount(courses: Course[]): number {
   return courses.filter((c) => c.aidApplicable && c.financialAidStatus === "applied").length;
 }
 
-export type DeadlineTone = "risk" | "muted";
+/** True when a derived deadline predates the workspace itself — the user
+    never had a chance to meet it, so it must not render as overdue. */
+export function isPreWorkspace(
+  deadlineISO: string,
+  profile: Pick<Profile, "workspaceCreatedAt">
+): boolean {
+  return deadlineISO < profile.workspaceCreatedAt;
+}
+
+export type DeadlineTone = "risk" | "neutral";
 
 /** Days-based urgency: anything inside 30 days (or overdue) renders in #841818. */
 export function deadlineTone(iso: string): DeadlineTone {
-  return daysUntil(iso) <= 30 ? "risk" : "muted";
+  return daysUntil(iso) <= 30 ? "risk" : "neutral";
 }
 
 export function describeDaysUntil(iso: string): string {

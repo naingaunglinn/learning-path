@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { AppSidebar } from "@/components/shell/app-sidebar";
 import { AppHeader } from "@/components/shell/app-header";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -15,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body>
         <Providers>
           <a
@@ -24,12 +31,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           >
             Skip to content
           </a>
-          <div className="flex min-h-dvh">
+          {/* App frame: dark shell with the content as a rounded sheet floating
+              on it. Desktop scrolls inside the sheet; mobile stays full-bleed
+              with normal document scroll. */}
+          <div className="flex min-h-dvh bg-background md:h-dvh md:overflow-hidden md:bg-sidebar md:p-2">
             <AppSidebar />
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-w-0 flex-1 flex-col bg-background md:h-full md:overflow-hidden md:rounded-2xl">
               <AppHeader />
-              <main id="main" className="flex-1">
-                <div className="mx-auto w-full max-w-6xl px-6 py-6 lg:px-8">{children}</div>
+              <main id="main" className="flex-1 md:min-h-0 md:overflow-y-auto">
+                <div className="mx-auto w-full max-w-6xl px-6 py-8 lg:px-8">{children}</div>
               </main>
             </div>
           </div>

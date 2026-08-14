@@ -111,12 +111,12 @@ function NetworkingDialog({
           <DialogTitle>{target ? "Edit target" : "Add networking target"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="nw-name">Name</Label>
             <Input id="nw-name" value={draft.name} onChange={(e) => set("name", e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Kind</Label>
               <Select value={draft.kind} onValueChange={(v) => set("kind", v as Draft["kind"])}>
                 <SelectTrigger aria-label="Kind">
@@ -131,7 +131,7 @@ function NetworkingDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Status</Label>
               <Select value={draft.status} onValueChange={(v) => set("status", v as Draft["status"])}>
                 <SelectTrigger aria-label="Status">
@@ -148,7 +148,7 @@ function NetworkingDialog({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="nw-touched">Last touched</Label>
               <Input
                 id="nw-touched"
@@ -157,12 +157,12 @@ function NetworkingDialog({
                 onChange={(e) => set("lastTouched", e.target.value || null)}
               />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="nw-url">URL</Label>
               <Input id="nw-url" value={draft.url} onChange={(e) => set("url", e.target.value)} inputMode="url" />
             </div>
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="nw-notes">Notes</Label>
             <Textarea id="nw-notes" rows={2} value={draft.notes} onChange={(e) => set("notes", e.target.value)} />
           </div>
@@ -184,11 +184,11 @@ function StatusDot({ status }: { status: NetworkingTarget["status"] }) {
       aria-hidden
       className={cn(
         "size-1.5 shrink-0 rounded-full",
-        status === "offer" && "bg-gold",
+        status === "offer" && "bg-green",
         status === "in_conversation" && "bg-foreground",
         status === "applied" && "bg-foreground/40",
         status === "not_contacted" && "border border-muted-foreground/50 bg-transparent",
-        status === "rejected" && "bg-risk/50"
+        status === "rejected" && "bg-muted-foreground/40"
       )}
     />
   );
@@ -257,7 +257,7 @@ export function Networking() {
                   onClick={() => setKindFilter(f.key)}
                   aria-pressed={kindFilter === f.key}
                   className={cn(
-                    "h-6 rounded-md px-2 text-xs font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring/60",
+                    "h-7 rounded-full px-3 text-chip outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring/60",
                     kindFilter === f.key
                       ? "bg-secondary text-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -268,7 +268,7 @@ export function Networking() {
               ))}
             </div>
             <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
-              <SelectTrigger size="sm" className="h-6 w-[132px] text-xs" aria-label="Sort by">
+              <SelectTrigger size="sm" className="h-7 w-[136px] text-chip" aria-label="Sort by">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -289,7 +289,7 @@ export function Networking() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={microTransition}
-                  className="flex items-center gap-2.5 border-b border-border/60 py-2 first:pt-0 last:border-0 last:pb-0"
+                  className="flex items-center gap-2.5 border-b border-border/60 py-3 first:pt-0 last:border-0 last:pb-0"
                 >
                   <StatusDot status={t.status} />
                   <div className="min-w-0 flex-1">
@@ -308,30 +308,16 @@ export function Networking() {
                           <ArrowUpRight className="size-3.5" />
                         </a>
                       )}
-                      <span className="text-[10px] tracking-[0.06em] text-muted-foreground/70 uppercase">
-                        {KIND_LABEL[t.kind]}
-                      </span>
                     </div>
-                    {t.notes && (
-                      <div className="truncate text-xs text-muted-foreground" title={t.notes}>
-                        {t.notes}
-                      </div>
-                    )}
                   </div>
-                  <span className="hidden shrink-0 text-xs text-muted-foreground tabular-nums sm:block">
+                  <span
+                    className="hidden shrink-0 text-meta text-subtle tabular-nums sm:block"
+                    title={[KIND_LABEL[t.kind], t.notes].filter(Boolean).join(" — ")}
+                  >
                     {t.lastTouched ? formatDay(t.lastTouched) : "—"}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={`Mark ${t.name} touched today`}
-                    title="Touched today"
-                    onClick={() => touch(t)}
-                  >
-                    <Handshake />
-                  </Button>
                   <Select value={t.status} onValueChange={(v) => setStatus(t, v as NetworkingTarget["status"])}>
-                    <SelectTrigger size="sm" className="h-6 w-[136px] text-xs" aria-label={`Status for ${t.name}`}>
+                    <SelectTrigger size="sm" className="h-7 w-[140px] text-chip" aria-label={`Status for ${t.name}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -349,6 +335,9 @@ export function Networking() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => touch(t)}>
+                        <Handshake /> Touched today
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setDialog({ open: true, target: t })}>
                         <Pencil /> Edit
                       </DropdownMenuItem>

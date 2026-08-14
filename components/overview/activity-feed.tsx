@@ -11,12 +11,12 @@ import {
   Upload,
   type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { fadeUp, staggerParent } from "@/lib/motion";
 import type { ActivityEvent } from "@/lib/schemas";
 import { useCollection } from "@/lib/use-collection";
 import { relativeTime } from "@/lib/dates";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { IconChip } from "@/components/shared/icon-chip";
 
 const ICON: Record<ActivityEvent["kind"], LucideIcon> = {
   created: Plus,
@@ -52,16 +52,15 @@ export function ActivityFeed() {
                 <motion.li
                   key={e.id}
                   variants={fadeUp}
-                  className="flex items-center gap-2.5 border-b border-border/60 py-2 first:pt-0 last:border-0 last:pb-0"
+                  className="flex items-center gap-3 border-b border-border/60 py-3 first:pt-0 last:border-0 last:pb-0"
                 >
-                  <Icon
-                    className={cn("size-3.5 shrink-0", win ? "text-gold-ink" : "text-muted-foreground")}
-                    aria-hidden
-                  />
-                  <span className="min-w-0 flex-1 truncate text-[13px]" title={e.message}>
+                  <IconChip tone={win ? "win" : "neutral"}>
+                    <Icon />
+                  </IconChip>
+                  <span className="min-w-0 flex-1 truncate text-body-sm" title={e.message}>
                     {e.message}
                   </span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums" suppressHydrationWarning>
+                  <span className="shrink-0 text-meta text-subtle tabular-nums" suppressHydrationWarning>
                     {relativeTime(e.at)}
                   </span>
                 </motion.li>

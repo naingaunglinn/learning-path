@@ -21,7 +21,10 @@ export function MobileNav() {
           <Menu />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72 bg-sidebar p-0">
+      <SheetContent
+        side="left"
+        className="w-72 border-sidebar-border bg-sidebar p-0 [&_[data-slot=sheet-close]]:text-white"
+      >
         <SheetTitle className="sr-only">Navigation</SheetTitle>
         <SidebarContent />
       </SheetContent>

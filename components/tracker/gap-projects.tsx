@@ -107,35 +107,35 @@ function GapDialog({
           <DialogTitle>{project ? "Edit project" : "Add skill-gap project"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="gp-title">Title</Label>
             <Input id="gp-title" value={draft.title} onChange={(e) => set("title", e.target.value)} aria-invalid={error} />
             {error && <p className="text-xs text-risk">Title is required.</p>}
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="gp-gap">Skill gap it closes</Label>
             <Input id="gp-gap" value={draft.gap} onChange={(e) => set("gap", e.target.value)} placeholder="e.g. Production LLM operations" />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="gp-scope">Scope</Label>
             <Textarea id="gp-scope" rows={3} value={draft.scope} onChange={(e) => set("scope", e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="gp-stack">Tech stack (comma-separated)</Label>
               <Input id="gp-stack" value={joinList(draft.techStack)} onChange={(e) => set("techStack", parseList(e.target.value))} />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="gp-weeks">Estimated weeks</Label>
               <Input id="gp-weeks" value={draft.estWeeks} onChange={(e) => set("estWeeks", e.target.value)} placeholder="4–6 wks" />
             </div>
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="gp-metric">Target metric</Label>
             <Input id="gp-metric" value={draft.targetMetric} onChange={(e) => set("targetMetric", e.target.value)} placeholder="e.g. recall@k tracked per release" />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Status</Label>
               <Select value={draft.status} onValueChange={(v) => set("status", v as Draft["status"])}>
                 <SelectTrigger aria-label="Status">
@@ -150,7 +150,7 @@ function GapDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="gp-progress">Progress %</Label>
               <Input
                 id="gp-progress"
@@ -214,23 +214,21 @@ function GapRow({ project, onEdit }: { project: GapProject; onEdit: () => void }
                   <Star
                     className={cn(
                       "size-4 transition-colors duration-200",
-                      project.starred ? "fill-gold stroke-gold-ink" : "stroke-muted-foreground/50 hover:stroke-foreground"
+                      project.starred ? "fill-green stroke-green-ink" : "stroke-muted-foreground/50 hover:stroke-foreground"
                     )}
                   />
                 </button>
-                <span className={cn("truncate text-sm font-medium", shipped && "text-muted-foreground")}>
+                <span
+                  className={cn("truncate text-sm font-medium", shipped && "text-muted-foreground")}
+                  title={[project.gap && `Closes: ${project.gap}`, project.scope].filter(Boolean).join("\n\n")}
+                >
                   {project.title}
                 </span>
               </div>
-              {project.gap && (
-                <div className="mt-0.5 truncate text-xs text-muted-foreground" title={project.gap}>
-                  closes: {project.gap}
-                </div>
-              )}
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
               <Select value={project.status} onValueChange={(v) => setStatus(v as GapProject["status"])}>
-                <SelectTrigger size="sm" className="h-6 w-[118px] text-xs" aria-label="Project status">
+                <SelectTrigger size="sm" className="h-7 w-[124px] text-chip" aria-label="Project status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -259,27 +257,27 @@ function GapRow({ project, onEdit }: { project: GapProject; onEdit: () => void }
             </div>
           </div>
 
-          {project.scope && <p className="line-clamp-2 text-xs text-muted-foreground">{project.scope}</p>}
-
-          <div className="flex flex-wrap items-center gap-1.5">
-            {project.estWeeks && <Chip>{project.estWeeks}</Chip>}
-            {project.targetMetric && (
-              <Chip title="Target metric">metric: {project.targetMetric}</Chip>
-            )}
-            {project.techStack.slice(0, 5).map((t) => (
-              <span key={t} className="inline-flex h-5 items-center rounded-md border px-1.5 text-[10px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2">
+            {project.estWeeks && <Chip tone="ghost">{project.estWeeks}</Chip>}
+            {project.techStack.slice(0, 3).map((t) => (
+              <span key={t} className="inline-flex h-5 items-center rounded-full bg-foreground px-2 text-[10px] font-medium text-background">
                 {t}
               </span>
             ))}
+            {project.targetMetric && (
+              <span className="truncate text-meta text-subtle" title={`Target metric: ${project.targetMetric}`}>
+                → {project.targetMetric}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2.5">
             <Progress
               value={project.progress}
               aria-label={`${project.progress}% complete`}
-              className={cn("flex-1", shipped && "[&_[data-slot=progress-indicator]]:bg-gold")}
+              className={cn("flex-1", shipped && "[&_[data-slot=progress-indicator]]:bg-green")}
             />
-            <span className={cn("w-9 text-right text-xs tabular-nums", shipped ? "font-medium text-gold-ink" : "text-muted-foreground")}>
+            <span className={cn("w-9 text-right text-xs tabular-nums", shipped ? "font-medium text-green-ink" : "text-muted-foreground")}>
               {project.progress}%
             </span>
           </div>

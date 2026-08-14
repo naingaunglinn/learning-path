@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Chip } from "@/components/shared/chip";
+import { IconChip } from "@/components/shared/icon-chip";
 
 const REF_ICON: Record<WeeklyItem["refType"], LucideIcon> = {
   gap_project: Target,
@@ -150,7 +151,7 @@ function PullDialog({
         <div className="space-y-4">
           {groups.map((group) => (
             <div key={group}>
-              <div className="mb-1.5 text-[10px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
+              <div className="mb-1.5 text-label text-muted-foreground uppercase">
                 {group}
               </div>
               <div className="space-y-1">
@@ -293,7 +294,7 @@ export function WeekView() {
       </Card>
 
       {carryable.length > 0 && (
-        <Card size="sm" className="border-gold/50 bg-gold-soft/40">
+        <Card size="sm" className="border-green/50 bg-green-soft/40">
           <CardContent className="flex flex-wrap items-center gap-3">
             <span className="text-[13px]">
               <span className="font-semibold tabular-nums">{carryable.length}</span> unfinished item
@@ -332,17 +333,16 @@ export function WeekView() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: -12 }}
                       transition={microTransition}
-                      className="group flex items-center gap-2.5 border-b border-border/60 py-2.5 first:pt-0 last:border-0 last:pb-0"
+                      className="group flex items-center gap-2.5 border-b border-border/60 py-3 first:pt-0 last:border-0 last:pb-0"
                     >
                       <Checkbox
                         checked={item.done}
                         onCheckedChange={(v) => toggle(item, v === true)}
                         aria-label={`Mark “${item.title}” ${item.done ? "not done" : "done"}`}
                       />
-                      <Icon
-                        className={cn("size-3.5 shrink-0", item.refType === "critical" ? "text-risk" : "text-muted-foreground")}
-                        aria-hidden
-                      />
+                      <IconChip tone={item.refType === "critical" ? "risk" : "neutral"}>
+                        <Icon />
+                      </IconChip>
                       <span
                         className={cn(
                           "min-w-0 flex-1 truncate text-[13px]",
@@ -353,7 +353,7 @@ export function WeekView() {
                         {item.title}
                       </span>
                       {item.carriedOver > 0 && (
-                        <Chip tone="gold" title={`Carried over ${item.carriedOver} time${item.carriedOver > 1 ? "s" : ""}`}>
+                        <Chip tone="win" title={`Carried over ${item.carriedOver} time${item.carriedOver > 1 ? "s" : ""}`}>
                           ×{item.carriedOver}
                         </Chip>
                       )}
@@ -374,6 +374,11 @@ export function WeekView() {
                 })}
               </AnimatePresence>
             </ul>
+          )}
+          {current.length > 0 && done === current.length && (
+            <p className="border-t border-border/60 pt-3 text-body-sm text-muted-foreground">
+              Week clear. Pull from plan to load next week early.
+            </p>
           )}
         </CardContent>
       </Card>

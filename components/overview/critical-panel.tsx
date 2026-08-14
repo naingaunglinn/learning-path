@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ConfirmDelete } from "@/components/shared/confirm-delete";
+import { IconChip } from "@/components/shared/icon-chip";
 
 function CriticalDialog({
   open,
@@ -73,15 +74,15 @@ function CriticalDialog({
           <DialogTitle>{item ? "Edit critical-path item" : "Add critical-path item"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="cp-title">Title</Label>
             <Input id="cp-title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="cp-detail">Detail</Label>
             <Textarea id="cp-detail" value={detail} onChange={(e) => setDetail(e.target.value)} rows={3} />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="cp-deadline">Deadline</Label>
             <Input
               id="cp-deadline"
@@ -126,11 +127,13 @@ export function CriticalPanel({ editable = false }: { editable?: boolean }) {
   return (
     <Card className="h-full">
       <CardHeader className="border-b">
-        <CardTitle className="flex items-center gap-2">
-          <TriangleAlert className="size-4 text-risk" aria-hidden />
+        <CardTitle className="flex items-center gap-2.5">
+          <IconChip tone="risk">
+            <TriangleAlert />
+          </IconChip>
           Critical path
         </CardTitle>
-        <CardDescription>Time-sensitive — delay is costly</CardDescription>
+        <CardDescription>Delay is costly</CardDescription>
         <CardAction className="flex items-center gap-1.5">
           {open > 0 && (
             <span className="inline-flex h-5 items-center rounded-md bg-risk-soft px-1.5 text-xs font-semibold text-risk tabular-nums">
@@ -154,7 +157,7 @@ export function CriticalPanel({ editable = false }: { editable?: boolean }) {
           {sorted.map((item) => {
             const done = item.status === "done";
             return (
-              <li key={item.id} className="flex items-start gap-2.5 border-b border-border/60 py-2.5 first:pt-0 last:border-0 last:pb-0">
+              <li key={item.id} className="flex items-start gap-2.5 border-b border-border/60 py-3 first:pt-0 last:border-0 last:pb-0">
                 <Checkbox
                   checked={done}
                   onCheckedChange={(v) => toggle(item.id, item.title, v === true)}
@@ -167,12 +170,10 @@ export function CriticalPanel({ editable = false }: { editable?: boolean }) {
                       "text-[13px] leading-snug font-medium",
                       done && "text-muted-foreground line-through"
                     )}
+                    title={item.detail || undefined}
                   >
                     {item.title}
                   </div>
-                  {item.detail && !done && (
-                    <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.detail}</div>
-                  )}
                 </div>
                 {item.deadline && !done && (
                   <span
@@ -207,7 +208,7 @@ export function CriticalPanel({ editable = false }: { editable?: boolean }) {
         </ul>
         {critical.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Nothing is blocking. Add time-sensitive items from the Action Tracker.
+            Nothing is blocking. Add critical-path items from the Action Tracker.
           </p>
         )}
       </CardContent>

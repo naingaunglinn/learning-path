@@ -9,10 +9,10 @@ export function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h2 className="text-sm font-semibold tracking-[-0.01em]">
+      <h2 className="text-[17px] font-bold tracking-[-0.015em]">
         {title}
         {typeof count === "number" && (
-          <span className="ml-1.5 text-xs font-normal text-muted-foreground tabular-nums">
+          <span className="ml-1.5 text-meta font-normal text-muted-foreground tabular-nums">
             {count}
           </span>
         )}

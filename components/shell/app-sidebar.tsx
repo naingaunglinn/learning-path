@@ -15,11 +15,11 @@ function NavLink({ item, badge }: { item: NavItem; badge?: { value: number; tone
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium outline-none transition-colors duration-200",
-        "focus-visible:ring-2 focus-visible:ring-ring/60",
+        "flex h-8 items-center gap-2.5 rounded-full px-3 text-[13px] font-medium outline-none transition-colors duration-200",
+        "focus-visible:ring-2 focus-visible:ring-sidebar-ring/60",
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+          : "text-sidebar-foreground hover:bg-white/5 hover:text-white"
       )}
     >
       <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
@@ -27,8 +27,10 @@ function NavLink({ item, badge }: { item: NavItem; badge?: { value: number; tone
       {badge && badge.value > 0 && (
         <span
           className={cn(
-            "ml-auto text-[11px] font-medium tabular-nums",
-            badge.tone === "risk" ? "text-risk" : "text-muted-foreground"
+            "ml-auto tabular-nums",
+            badge.tone === "risk"
+              ? "inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-risk px-1.5 text-[10px] font-semibold text-white"
+              : "text-[11px] font-medium text-sidebar-foreground/80"
           )}
         >
           {badge.value}
@@ -64,12 +66,12 @@ export function SidebarContent() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="px-5 pt-6 pb-5">
-        <Link href="/" className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/60">
-          <span className="flex items-center gap-1.5 text-[10px] font-medium tracking-[0.24em] text-muted-foreground">
-            <span className="size-1.5 bg-gold" aria-hidden />
+        <Link href="/" className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
+          <span className="flex items-center gap-1.5 text-[10px] font-medium tracking-[0.24em] text-subtle">
+            <span className="size-1.5 bg-green" aria-hidden />
             CAREER
           </span>
-          <span className="mt-0.5 block text-[15px] font-semibold tracking-[-0.01em]">
+          <span className="mt-0.5 block text-[15px] font-bold tracking-[-0.01em] text-white">
             Command Center
           </span>
         </Link>
@@ -79,7 +81,7 @@ export function SidebarContent() {
         {navSections.map((section, i) => (
           <div key={section.label ?? i}>
             {section.label && (
-              <div className="px-2.5 pt-5 pb-1.5 text-[10px] font-medium tracking-[0.12em] text-muted-foreground/80 uppercase">
+              <div className="px-2.5 pt-5 pb-1.5 text-[11px] font-medium tracking-[0.12em] text-subtle/80 uppercase">
                 {section.label}
               </div>
             )}
@@ -92,17 +94,17 @@ export function SidebarContent() {
         ))}
       </nav>
 
-      <div className="border-t px-4 py-4">
+      <div className="border-t border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-2.5">
           <span
             aria-hidden
-            className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-[11px] font-semibold text-primary-foreground"
+            className="flex size-7 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-[11px] font-semibold text-sidebar-primary-foreground"
           >
             {initials}
           </span>
           <div className="min-w-0">
-            <div className="truncate text-[13px] font-medium leading-tight">{profile.name}</div>
-            <div className="truncate text-xs leading-tight text-muted-foreground">
+            <div className="truncate text-[13px] font-medium leading-tight text-white">{profile.name}</div>
+            <div className="truncate text-xs leading-tight text-sidebar-foreground">
               {profile.role}
             </div>
           </div>
@@ -113,8 +115,9 @@ export function SidebarContent() {
 }
 
 export function AppSidebar() {
+  /* Lives on the dark shell itself — the content sheet floats beside it. */
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 border-r bg-sidebar md:block">
+    <aside className="hidden h-full w-60 shrink-0 md:block">
       <SidebarContent />
     </aside>
   );

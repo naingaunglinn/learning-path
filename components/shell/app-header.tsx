@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { addDaysISO, formatDay, isoWeekNumber, weeksUntil, weekStartISO } from "@/lib/dates";
 import { titleForPath } from "@/lib/nav";
@@ -10,6 +11,12 @@ export function AppHeader() {
   const pathname = usePathname();
   const profile = useProfile();
 
+  /* Desktop scrolls inside the sheet, not the window — Next.js only resets
+     window scroll on navigation, so reset the sheet ourselves. */
+  useEffect(() => {
+    document.getElementById("main")?.scrollTo(0, 0);
+  }, [pathname]);
+
   const monday = weekStartISO();
   const weekLabel = `Wk ${isoWeekNumber(monday)} · ${formatDay(monday)}–${formatDay(addDaysISO(monday, 6))}`;
   const wks = weeksUntil(profile.targetDate);
@@ -19,7 +26,7 @@ export function AppHeader() {
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
           <MobileNav />
-          <h1 className="text-[15px] font-semibold tracking-[-0.01em]">{titleForPath(pathname)}</h1>
+          <h1 className="text-title">{titleForPath(pathname)}</h1>
         </div>
         <div className="flex items-center gap-3">
           <span className="hidden text-xs text-muted-foreground tabular-nums sm:block" suppressHydrationWarning>

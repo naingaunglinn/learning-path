@@ -34,7 +34,7 @@ function ChartTip({
   const done = payload.find((p) => p.dataKey === "done")?.value ?? 0;
   const planned = payload.find((p) => p.dataKey === "planned")?.value ?? 0;
   return (
-    <div className="rounded-lg border bg-card px-2.5 py-1.5 text-xs shadow-ambient">
+    <div className="rounded-lg border bg-card px-2.5 py-1.5 text-xs shadow-2">
       <div className="font-medium">{label}</div>
       <div className="mt-0.5 text-muted-foreground tabular-nums">
         {done} done · {planned} planned
@@ -47,6 +47,12 @@ export function MilestoneChart() {
   const profile = useProfile();
   const milestones = useCollection("milestones");
   const reduce = useReducedMotion();
+
+  /* With fewer than two milestones closed there is no line worth drawing —
+     show the plan at 40% and say so, instead of a flat line that reads as
+     a render failure. */
+  const doneTotal = milestones.filter((m) => m.status === "done").length;
+  const sparse = doneTotal < 2;
 
   const nowIdx = currentMonthIndex(profile);
   const data = Array.from({ length: profile.timelineMonths }, (_, i) => {
@@ -75,52 +81,63 @@ export function MilestoneChart() {
             <span className="h-px w-4 border-t border-dashed border-chart-4" aria-hidden /> planned
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-3 w-px bg-gold" aria-hidden /> now
+            <span className="h-3 w-px bg-green" aria-hidden /> now
           </span>
         </div>
       </CardHeader>
-      <CardContent className="h-[248px]">
+      <CardContent className="relative h-[248px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
-            <CartesianGrid vertical={false} stroke="#EFEFEF" />
+            <CartesianGrid vertical={false} stroke="#e9e9e6" />
             <XAxis
               dataKey="label"
               tickLine={false}
               axisLine={false}
-              tick={{ fontSize: 11, fill: "#6B6B6B" }}
+              tick={{ fontSize: 11, fill: "#6d6d68" }}
               interval={2}
             />
             <YAxis
               allowDecimals={false}
               tickLine={false}
               axisLine={false}
-              tick={{ fontSize: 11, fill: "#6B6B6B" }}
+              tick={{ fontSize: 11, fill: "#6d6d68" }}
               domain={[0, Math.max(1, milestones.length)]}
             />
-            <Tooltip content={<ChartTip />} cursor={{ stroke: "#E8E8E8" }} />
-            {nowLabel && <ReferenceLine x={nowLabel} stroke="#E0BB20" strokeWidth={1.5} />}
+            {!sparse && <Tooltip content={<ChartTip />} cursor={{ stroke: "#E8E8E8" }} />}
+            {nowLabel && <ReferenceLine x={nowLabel} stroke="#34d65c" strokeWidth={1.5} />}
             <Line
               type="monotone"
               dataKey="planned"
               stroke="#B5B5B5"
+              strokeOpacity={sparse ? 0.4 : 1}
               strokeWidth={1.25}
               strokeDasharray="4 4"
               dot={false}
               isAnimationActive={!reduce}
               animationDuration={800}
             />
-            <Line
-              type="monotone"
-              dataKey="done"
-              stroke="#000000"
-              strokeWidth={1.75}
-              dot={false}
-              activeDot={{ r: 3, fill: "#000000" }}
-              isAnimationActive={!reduce}
-              animationDuration={800}
-            />
+            {!sparse && (
+              <Line
+                type="monotone"
+                dataKey="done"
+                stroke="#111211"
+                strokeWidth={1.75}
+                dot={false}
+                activeDot={{ r: 3, fill: "#111211" }}
+                isAnimationActive={!reduce}
+                animationDuration={800}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
+        {sparse && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8">
+            <p className="max-w-sm text-center text-body-sm text-muted-foreground">
+              Nothing shipped yet. The dashed line is the plan — your line starts when the first
+              milestone closes.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

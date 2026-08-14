@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Chip } from "@/components/shared/chip";
+import { IconChip } from "@/components/shared/icon-chip";
 import { ConfirmDelete } from "@/components/shared/confirm-delete";
 import { SectionHeader } from "@/components/shared/section-header";
 
@@ -87,8 +88,10 @@ export function Completions() {
           ) : (
             <ul>
               {completedCourses.map((c) => (
-                <li key={c.id} className="flex items-center gap-2.5 border-b border-border/60 py-2.5 first:pt-0 last:border-0 last:pb-0">
-                  <GraduationCap className="size-4 shrink-0 text-gold-ink" aria-hidden />
+                <li key={c.id} className="flex items-center gap-2.5 border-b border-border/60 py-3 first:pt-0 last:border-0 last:pb-0">
+                  <IconChip tone="win">
+                    <GraduationCap />
+                  </IconChip>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="truncate text-[13px] font-medium">{c.title}</span>
@@ -109,7 +112,7 @@ export function Completions() {
                       {c.completedDate && ` · ${formatDate(c.completedDate)}`}
                     </div>
                   </div>
-                  <Chip tone="gold" title="Lives in the Learning roadmap — edit it there">
+                  <Chip tone="win" title="Lives in the Learning roadmap — edit it there">
                     <Link href="/learning" className="outline-none">
                       from roadmap
                     </Link>
@@ -117,8 +120,10 @@ export function Completions() {
                 </li>
               ))}
               {certifications.map((cert) => (
-                <li key={cert.id} className="flex items-center gap-2.5 border-b border-border/60 py-2.5 first:pt-0 last:border-0 last:pb-0">
-                  <Award className="size-4 shrink-0 text-gold-ink" aria-hidden />
+                <li key={cert.id} className="flex items-center gap-2.5 border-b border-border/60 py-3 first:pt-0 last:border-0 last:pb-0">
+                  <IconChip tone="win">
+                    <Award />
+                  </IconChip>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="truncate text-[13px] font-medium">{cert.title}</span>
@@ -167,16 +172,16 @@ export function Completions() {
             <DialogTitle>{dialog.cert ? "Edit credential" : "Add external credential"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="ct-title">Title</Label>
               <Input id="ct-title" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
+              <div className="grid gap-2">
                 <Label htmlFor="ct-issuer">Issuer</Label>
                 <Input id="ct-issuer" value={draft.issuer} onChange={(e) => setDraft((d) => ({ ...d, issuer: e.target.value }))} />
               </div>
-              <div className="grid gap-1.5">
+              <div className="grid gap-2">
                 <Label htmlFor="ct-date">Date</Label>
                 <Input
                   id="ct-date"
@@ -186,7 +191,7 @@ export function Completions() {
                 />
               </div>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="ct-url">Credential URL</Label>
               <Input id="ct-url" value={draft.credentialUrl} onChange={(e) => setDraft((d) => ({ ...d, credentialUrl: e.target.value }))} inputMode="url" />
             </div>

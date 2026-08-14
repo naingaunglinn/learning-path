@@ -122,7 +122,7 @@ export function BulletsView() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <div className="mb-1.5 text-[10px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
+              <div className="mb-1.5 text-label text-muted-foreground uppercase">
                 Quantified achievements
               </div>
               <div className="space-y-1">
@@ -146,11 +146,11 @@ export function BulletsView() {
             </div>
             <div>
               <div className="mb-1.5 flex items-center justify-between gap-2">
-                <span className="text-[10px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
+                <span className="text-label text-muted-foreground uppercase">
                   STAR stories
                 </span>
                 <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-                  <SelectTrigger size="sm" className="h-6 w-[168px] text-xs" aria-label="Filter stories by competency">
+                  <SelectTrigger size="sm" className="h-7 w-[172px] text-chip" aria-label="Filter stories by competency">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -176,7 +176,7 @@ export function BulletsView() {
                     <span className="min-w-0 flex-1 truncate">{s.title}</span>
                     <span className="hidden shrink-0 gap-1 sm:flex">
                       {s.competencyTags.slice(0, 2).map((c) => (
-                        <span key={c} className="inline-flex h-5 items-center rounded-md border px-1.5 text-[10px] text-muted-foreground">
+                        <span key={c} className="inline-flex h-5 items-center rounded-full bg-foreground px-2 text-[10px] font-medium text-background">
                           {COMPETENCY_LABEL[c]}
                         </span>
                       ))}
@@ -199,7 +199,9 @@ export function BulletsView() {
           <CardHeader>
             <CardTitle>Composed bullets</CardTitle>
             <CardDescription>
-              {count === 0 ? "Nothing selected yet" : `${count} item${count > 1 ? "s" : ""} selected`}
+              {count === 0
+                ? "Pick achievements on the left. They compose into resume bullets here."
+                : `${count} item${count > 1 ? "s" : ""} selected`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -211,7 +213,7 @@ export function BulletsView() {
                   setDirty(false);
                 }}
               >
-                <SelectTrigger size="sm" className="h-7 w-[220px] text-xs" aria-label="Bullet format">
+                <SelectTrigger size="sm" className="h-7 w-[220px] text-chip" aria-label="Bullet format">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -235,7 +237,7 @@ export function BulletsView() {
                 setDirty(true);
               }}
               rows={14}
-              placeholder={"Select evidence on the left.\nBullets compose here — edit freely before copying."}
+              placeholder={"Pick achievements on the left.\nThey compose into resume bullets here — edit freely before copying."}
               className="font-mono text-[12.5px] leading-relaxed"
               aria-label="Composed bullets"
             />

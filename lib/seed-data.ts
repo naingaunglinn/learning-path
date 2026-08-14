@@ -4,6 +4,7 @@ import type {
   Profile,
 } from "./schemas";
 import { weekStartISO } from "./dates";
+import { rescheduleFrom } from "./schedule";
 
 /* ------------------------------------------------------------------ */
 /* Seed content — data only, no app logic.                             */
@@ -24,20 +25,323 @@ export const seedProfile: Profile = {
     "GraphQL", "AWS", "Azure", "Stripe",
   ],
   targetRoles: [
+    "AI / GenAI Engineer (LLM applications, RAG, agents)",
+    "Senior Backend shipping GenAI (Python / TS)",
     "Senior / Mid-Senior Full-Stack (JS/TS)",
-    "Backend (Laravel / Node)",
-    "AI Application / LLM Integration",
     "Fintech / Payments Integration",
-    "Forward-Deployed / Solutions Engineer",
     "Platform / DevOps → SRE",
   ],
   timelineStart: "2026-08",
   timelineMonths: 18,
   targetDate: "2027-02-01",
   targetLabel: "first EU application wave",
+  workspaceCreatedAt: "2026-08-12", // re-stamped with the real date at seed time
 };
 
 type Seed = { [K in keyof CollectionType]: Array<Omit<CollectionType[K], "createdAt" | "updatedAt">> };
+
+/* The learning path — every course verified live on Coursera (2026-08) and
+   included in Coursera Plus. Sequenced for ~10 focused hours/week around the
+   thesis: a senior backend engineer who ships GenAI systems, not a
+   from-scratch ML researcher. Exported for the v5 migration.
+   Module checklists mirror each course's published syllabus (verified
+   2026-08); self-study rows carry an authored topic list instead. */
+
+/** Deterministic module rows from syllabus titles — ids are stable so the
+    v10 migration and future merges can key on them. */
+const mods = (courseId: string, titles: string[]) =>
+  titles.map((title, i) => ({
+    id: `${courseId}-m${String(i + 1).padStart(2, "0")}`,
+    title,
+    done: false,
+    completedDate: null,
+  }));
+
+export const seedCourses: Seed["courses"] = [
+  /* -------- Phase 1 · Foundations (M1–M4) -------- */
+  { id: "co-genai-llms", tags: ["ai"], phase: "Foundations",
+    title: "Generative AI with Large Language Models",
+    provider: "DeepLearning.AI + AWS", duration: "~17 h", durationWeeks: 2, targetStartMonth: 1, plannedStartDate: null,
+    status: "in_progress", hiringWeight: "high",
+    url: "https://www.coursera.org/learn/generative-ai-with-llms",
+    modules: mods("co-genai-llms", [
+      "Week 1 · Generative AI use cases, project lifecycle, and model pre-training",
+      "Week 2 · Fine-tuning and evaluating large language models",
+      "Week 3 · Reinforcement learning and LLM-powered applications",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  { id: "co-python-ai", tags: ["ai", "python"], phase: "Foundations",
+    title: "Python for Data Science, AI & Development",
+    provider: "IBM", duration: "~25 h · fast review", durationWeeks: 3, targetStartMonth: 1, plannedStartDate: null,
+    status: "not_started", hiringWeight: "medium",
+    url: "https://www.coursera.org/learn/python-for-applied-data-science-ai",
+    modules: mods("co-python-ai", [
+      "Module 1 · Python Basics",
+      "Module 2 · Python Data Structures",
+      "Module 3 · Python Programming Fundamentals",
+      "Module 4 · Working with Data in Python",
+      "Module 5 · APIs and Data Collection",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  { id: "co-ml-spec", tags: ["ai", "ml"], phase: "Foundations",
+    title: "Machine Learning Specialization",
+    provider: "DeepLearning.AI + Stanford", duration: "3 courses · ~95 h", durationWeeks: 10, targetStartMonth: 2, plannedStartDate: null,
+    status: "not_started", hiringWeight: "high",
+    url: "https://www.coursera.org/specializations/machine-learning-introduction",
+    modules: mods("co-ml-spec", [
+      "Course 1 · Supervised Machine Learning: Regression and Classification",
+      "Course 2 · Advanced Learning Algorithms",
+      "Course 3 · Unsupervised Learning, Recommenders, Reinforcement Learning",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  { id: "co-genai-swdev", tags: ["ai", "dev-workflow"], phase: "Foundations",
+    title: "Generative AI for Software Development",
+    provider: "DeepLearning.AI", duration: "3 courses · ~34 h", durationWeeks: 4, targetStartMonth: 4, plannedStartDate: null,
+    status: "not_started", hiringWeight: "medium",
+    url: "https://www.coursera.org/specializations/generative-ai-for-software-development",
+    modules: mods("co-genai-swdev", [
+      "Course 1 · Introduction to Generative AI for Software Development",
+      "Course 2 · Team Software Engineering with AI",
+      "Course 3 · AI-Powered Software and System Design",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+
+  /* -------- Phase 2 · GenAI engineering (M5–M9) -------- */
+  { id: "co-ibm-genai", tags: ["ai", "llm"], phase: "GenAI engineering",
+    title: "Generative AI Engineering with LLMs",
+    provider: "IBM", duration: "7 courses · ~48 h", durationWeeks: 6, targetStartMonth: 5, plannedStartDate: null,
+    status: "not_started", hiringWeight: "high",
+    url: "https://www.coursera.org/specializations/generative-ai-engineering-with-llms",
+    modules: mods("co-ibm-genai", [
+      "Course 1 · Generative AI and LLMs: Architecture and Data Preparation",
+      "Course 2 · Gen AI Foundational Models for NLP & Language Understanding",
+      "Course 3 · Generative AI Language Modeling with Transformers",
+      "Course 4 · Generative AI Engineering and Fine-Tuning Transformers",
+      "Course 5 · Generative AI Advanced Fine-Tuning for LLMs",
+      "Course 6 · Fundamentals of AI Agents Using RAG and LangChain",
+      "Course 7 · Project: Generative AI Applications with RAG and LangChain",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  { id: "co-ibm-rag-agentic", tags: ["ai", "rag", "agents"], phase: "GenAI engineering",
+    title: "IBM RAG and Agentic AI Professional Certificate",
+    provider: "IBM", duration: "10 courses · ~2 mo", durationWeeks: 8, targetStartMonth: 6, plannedStartDate: null,
+    status: "not_started", hiringWeight: "high",
+    url: "https://www.coursera.org/professional-certificates/ibm-rag-and-agentic-ai",
+    modules: mods("co-ibm-rag-agentic", [
+      "Course 1 · Develop Generative AI Applications: Get Started",
+      "Course 2 · Build RAG Applications: Get Started",
+      "Course 3 · Vector Databases for RAG: An Introduction",
+      "Course 4 · Advanced RAG with Vector Databases and Retrievers",
+      "Course 5 · Build Multimodal Generative AI Applications",
+      "Course 6 · Fundamentals of Building AI Agents",
+      "Course 7 · Agentic AI with LangChain and LangGraph",
+      "Course 8 · Agentic AI with LangGraph, CrewAI, AutoGen and BeeAI",
+      "Course 9 · Build AI Agents using MCP",
+      "Course 10 · RAG and Agentic AI Capstone Project",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  /* Open-ended rows own the Sunday slot — scheduled after the Warm-up
+     track's last Sunday block so the two never collide. */
+  { id: "co-system-design", tags: ["architecture"], phase: "GenAI engineering",
+    title: "System design self-study",
+    provider: "Self-study (not Coursera)", duration: "ongoing · Sundays", durationWeeks: null, targetStartMonth: 9, plannedStartDate: null,
+    status: "not_started", hiringWeight: "high", url: "",
+    modules: mods("co-system-design", [
+      "Load balancing, stateless services & horizontal scale",
+      "Caching layers, eviction & invalidation",
+      "Database replication, sharding & partitioning",
+      "Consistency models, transactions & isolation",
+      "Message queues, async processing & idempotency",
+      "Rate limiting, backpressure & graceful degradation",
+      "Search & indexing at scale",
+      "Observability: metrics, logs, traces & SLOs",
+      "Design practice: URL shortener + pastebin",
+      "Design practice: chat / realtime updates",
+      "Design practice: news feed + notifications",
+      "Design practice: payment system + ledger",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+
+  /* -------- Phase 3 · Production & cloud (M9–M12) -------- */
+  { id: "co-english-career", tags: ["english", "applications"], phase: "Production & cloud",
+    title: "English for Career Development",
+    provider: "University of Pennsylvania", duration: "~25 h", durationWeeks: 3, targetStartMonth: 9, plannedStartDate: null,
+    status: "not_started", hiringWeight: "medium",
+    url: "https://www.coursera.org/learn/careerdevelopment",
+    modules: mods("co-english-career", [
+      "Unit 1: Entering the Job Market",
+      "Unit 2: Resumes",
+      "Unit 3: Writing a Cover Letter",
+      "Unit 4: Networking",
+      "Unit 5: Interviewing For a Job",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  { id: "co-sre-gcp", tags: ["devops", "sre"], phase: "Production & cloud",
+    title: "Cloud DevOps Engineer (Google Cloud cert prep)",
+    provider: "Google Cloud", duration: "4 courses · ~36 h", durationWeeks: 4, targetStartMonth: 10, plannedStartDate: null,
+    status: "not_started", hiringWeight: "high",
+    url: "https://www.coursera.org/professional-certificates/sre-devops-engineer-google-cloud",
+    modules: mods("co-sre-gcp", [
+      "Course 1 · Developing a Google SRE Culture",
+      "Course 2 · Reliable Google Cloud Infrastructure: Design and Process",
+      "Course 3 · Logging and Monitoring in Google Cloud",
+      "Course 4 · Getting Started with Google Kubernetes Engine",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+
+  /* -------- Phase 4 · Interview & landing (M13–M18) -------- */
+  { id: "co-meta-interview", tags: ["interview"], phase: "Interview & landing",
+    title: "Coding Interview Preparation",
+    provider: "Meta", duration: "~11 h", durationWeeks: 2, targetStartMonth: 13, plannedStartDate: null,
+    status: "not_started", hiringWeight: "medium",
+    url: "https://www.coursera.org/learn/coding-interview-preparation",
+    modules: mods("co-meta-interview", [
+      "Module 1 · Introduction to the coding interview",
+      "Module 2 · Introduction to Data Structures",
+      "Module 3 · Introduction to Algorithms",
+      "Module 4 · Final project",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+
+  /* -------- Warm-up · parallel track (M1–M8, ~3 h/week on top) --------
+     8 years of experience that is really 2 years × 4 loops: these backfill
+     the fundamentals a compounding 8 years would have built. Every item ends
+     by applying the material to a real production system (an ADR, an index,
+     a hardening pass) so the loop breaks instead of repeating. */
+  { id: "co-warmup-networking", tags: ["fundamentals", "networking"], phase: "Warm-up",
+    title: "The Bits and Bytes of Computer Networking",
+    provider: "Google", duration: "~20 h · 3 h/wk pace", durationWeeks: 7, targetStartMonth: 1, plannedStartDate: null,
+    status: "not_started", hiringWeight: "medium",
+    url: "https://www.coursera.org/learn/computer-networking",
+    modules: mods("co-warmup-networking", [
+      "Module 1 · Introduction to Networking",
+      "Module 2 · The Network Layer",
+      "Module 3 · The Transport and Application Layers",
+      "Module 4 · Networking Services",
+      "Module 5 · Connecting to the Internet",
+      "Module 6 · Troubleshooting and the Future of Networking",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  { id: "co-warmup-algorithms", tags: ["fundamentals", "algorithms"], phase: "Warm-up",
+    title: "Algorithmic Toolbox",
+    provider: "UC San Diego", duration: "~40 h · 3 h/wk pace", durationWeeks: 13, targetStartMonth: 3, plannedStartDate: null,
+    status: "not_started", hiringWeight: "medium",
+    url: "https://www.coursera.org/learn/algorithmic-toolbox",
+    modules: mods("co-warmup-algorithms", [
+      "Module 1 · Programming Challenges",
+      "Module 2 · Algorithmic Warm-up",
+      "Module 3 · Greedy Algorithms",
+      "Module 4 · Divide-and-Conquer",
+      "Module 5 · Dynamic Programming 1",
+      "Module 6 · Dynamic Programming 2",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  { id: "co-warmup-db", tags: ["fundamentals", "databases"], phase: "Warm-up",
+    title: "Database internals — indexing, transactions, isolation",
+    provider: "Self-study · Use the Index, Luke", duration: "4 wks · applied to the Car Rental DB", durationWeeks: 4, targetStartMonth: 4, plannedStartDate: null,
+    status: "not_started", hiringWeight: "medium",
+    url: "https://use-the-index-luke.com",
+    modules: mods("co-warmup-db", [
+      "Ch 1 · Anatomy of an SQL Index",
+      "Ch 2 · The Where Clause",
+      "Ch 3 · Performance and Scalability",
+      "Ch 4 · The Join Operation",
+      "Ch 5 · Clustering Data",
+      "Ch 6 · Sorting and Grouping",
+      "Ch 7 · Partial Results (pagination)",
+      "Ch 8 · Modifying Data (insert, delete, update)",
+      "Apply · Index audit on the Car Rental DB",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  { id: "co-warmup-patterns", tags: ["fundamentals", "architecture"], phase: "Warm-up",
+    title: "Design Patterns",
+    provider: "University of Alberta", duration: "~15 h · 3 h/wk pace", durationWeeks: 5, targetStartMonth: 6, plannedStartDate: null,
+    status: "not_started", hiringWeight: "medium",
+    url: "https://www.coursera.org/learn/design-patterns",
+    modules: mods("co-warmup-patterns", [
+      "Module 1 · Introduction to Design Patterns: Creational & Structural Patterns",
+      "Module 2 · Behavioural Design Patterns",
+      "Module 3 · Working with Design Patterns & Anti-patterns",
+      "Module 4 · Capstone Challenge",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+  { id: "co-warmup-security", tags: ["fundamentals", "security"], phase: "Warm-up",
+    title: "Security pass — OWASP Top 10 on a production system",
+    provider: "Self-study · OWASP", duration: "2 wks · write up findings", durationWeeks: 2, targetStartMonth: 8, plannedStartDate: null,
+    status: "not_started", hiringWeight: "medium",
+    url: "https://owasp.org/www-project-top-ten/",
+    modules: mods("co-warmup-security", [
+      "OWASP Top 10 · A01–A05 deep read",
+      "OWASP Top 10 · A06–A10 deep read",
+      "Hardening pass on one MML production system",
+      "Write-up · findings, fixes & lessons",
+    ]),
+    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
+];
+
+/* Goal timeline the courses and capstones roll up into. Exported for the
+   v5 migration. */
+export const seedMilestones: Seed["milestones"] = [
+  { id: "ms-2026-08", month: "2026-08", kind: "milestone", status: "done", tags: [],
+    title: "Plan locked — Coursera Plus path live",
+    detail: "Command center live; Generative AI with LLMs underway; ADR #1 drafted." },
+  { id: "ms-2026-09", month: "2026-09", kind: "milestone", status: "upcoming", tags: [],
+    title: "Cert #1: Generative AI with LLMs + 3 ADRs public",
+    detail: "First certificate and first public engineering-judgment evidence land together." },
+  { id: "ms-2026-10", month: "2026-10", kind: "decision", status: "upcoming", tags: [],
+    title: "Lane check: senior backend + GenAI",
+    detail: "Confirm positioning against ADR traction and job-ad language — the pure-ML lane is a trap without a degree." },
+  { id: "ms-2026-11", month: "2026-11", kind: "milestone", status: "upcoming", tags: [],
+    title: "Cert #2: Machine Learning Specialization",
+    detail: "Andrew Ng fundamentals — the credibility base under every AI claim." },
+  { id: "ms-2026-12", month: "2026-12", kind: "milestone", status: "upcoming", tags: [],
+    title: "RAG assistant shipped",
+    detail: "pgvector + hybrid search + eval harness, deployed publicly with a write-up." },
+  { id: "ms-2027-01", month: "2027-01", kind: "milestone", status: "upcoming", tags: [],
+    title: "Cert #3: Generative AI Engineering with LLMs",
+    detail: "Fine-tuning with PyTorch/Hugging Face, RAG, LangChain." },
+  { id: "ms-2027-02", month: "2027-02", kind: "decision", status: "upcoming", tags: [],
+    title: "Open the first application wave?",
+    detail: "Early market test — Germany §18g is already satisfied; calibrate the CV against real screens." },
+  { id: "ms-2027-03", month: "2027-03", kind: "milestone", status: "upcoming", tags: [],
+    title: "Resume v2 + LLM streaming feature shipped",
+    detail: "All four resume fixes closed; p95 latency + cost dashboards public." },
+  { id: "ms-2027-04", month: "2027-04", kind: "milestone", status: "upcoming", tags: [],
+    title: "Cert #4: IBM RAG and Agentic AI",
+    detail: "Vector DBs, agents, evals — the exact stack recruiters screen for." },
+  { id: "ms-2027-06", month: "2027-06", kind: "decision", status: "upcoming", tags: [],
+    title: "Route decision: DE Blue Card vs NL HSM vs IE CSEP",
+    detail: "Choose on the live pipeline, not theory. Start document legalization now — Myanmar-side paperwork is slow." },
+  { id: "ms-2027-07", month: "2027-07", kind: "milestone", status: "upcoming", tags: [],
+    title: "GenAI feature live at work + Cloud DevOps cert",
+    detail: "The centerpiece CV bullet: real users, real metrics, a Google Cloud cert on top." },
+  { id: "ms-2027-08", month: "2027-08", kind: "milestone", status: "upcoming", tags: [],
+    title: "Application sprint opens: 15–20/week",
+    detail: "NL IND sponsor register + DE Blue Card employers; interview prep runs in parallel." },
+  { id: "ms-2027-11", month: "2027-11", kind: "milestone", status: "upcoming", tags: [],
+    title: "Target: signed offer",
+    detail: "Negotiate with thresholds in mind: DE Blue Card €45,934/yr · NL HSM monthly floor." },
+  { id: "ms-2027-12", month: "2027-12", kind: "milestone", status: "upcoming", tags: [],
+    title: "Visa filed",
+    detail: "Evidence pack ready since 2026. NL HSM ~2 wks; DE Blue Card 4–8 wks." },
+  { id: "ms-2028-01", month: "2028-01", kind: "milestone", status: "upcoming", tags: [],
+    title: "Relocation window", detail: "Land in January–February 2028." },
+];
 
 const seed: Seed = {
   /* ---------------- Action Tracker ---------------- */
@@ -90,63 +394,9 @@ const seed: Seed = {
     },
   ],
 
-  milestones: [
-    { id: "ms-2026-08", month: "2026-08", kind: "milestone", status: "done", tags: [],
-      title: "Plan locked, foundation sprint", detail: "Command center live, financial aid filed, ADR #1 drafted." },
-    { id: "ms-2026-09", month: "2026-09", kind: "milestone", status: "upcoming", tags: [],
-      title: "3 ADRs published", detail: "Paperwork critical path cleared: passport + reference letter in motion." },
-    { id: "ms-2026-10", month: "2026-10", kind: "decision", status: "upcoming", tags: [],
-      title: "Direction check: AI-first vs full-stack-first", detail: "Pick portfolio emphasis based on ADR traction and market signal." },
-    { id: "ms-2026-11", month: "2026-11", kind: "milestone", status: "upcoming", tags: [],
-      title: "RAG assistant shipped", detail: "Eval harness reporting recall@k; write-up published." },
-    { id: "ms-2027-01", month: "2027-01", kind: "milestone", status: "upcoming", tags: [],
-      title: "LLM streaming feature shipped", detail: "IBM Gen AI certificate completed alongside." },
-    { id: "ms-2027-02", month: "2027-02", kind: "decision", status: "upcoming", tags: [],
-      title: "Open first application wave?", detail: "Germany §18g already satisfied — go/extend based on portfolio strength." },
-    { id: "ms-2027-03", month: "2027-03", kind: "milestone", status: "upcoming", tags: [],
-      title: "Resume v2 + Next.js migration done", detail: "All four resume fixes closed; applications running weekly." },
-    { id: "ms-2027-05", month: "2027-05", kind: "milestone", status: "upcoming", tags: [],
-      title: "SRE project + Google Cloud cert", detail: "Platform/DevOps track credible on paper and in repo." },
-    { id: "ms-2027-06", month: "2027-06", kind: "decision", status: "upcoming", tags: [],
-      title: "Route decision: DE Blue Card vs NL HSM vs IE CSEP", detail: "Choose based on live pipeline, not theory." },
-    { id: "ms-2027-08", month: "2027-08", kind: "milestone", status: "upcoming", tags: [],
-      title: "Target: signed offer", detail: "" },
-    { id: "ms-2027-10", month: "2027-10", kind: "milestone", status: "upcoming", tags: [],
-      title: "Visa filed", detail: "Evidence pack ready since 2026 — no scramble." },
-    { id: "ms-2028-01", month: "2028-01", kind: "milestone", status: "upcoming", tags: [],
-      title: "Relocation window", detail: "" },
-  ],
+  milestones: seedMilestones,
 
-  courses: [
-    { id: "co-genai-llms", tags: ["ai"], title: "Generative AI with Large Language Models",
-      provider: "DeepLearning.AI + AWS", duration: "~3 wks", targetStartMonth: 1,
-      status: "in_progress", hiringWeight: "high",
-      url: "https://www.coursera.org/learn/generative-ai-with-llms",
-      completedDate: null, aidApplicable: true, financialAidStatus: "approved",
-      aidAppliedDate: "2026-07-05", aidApprovedDate: "2026-07-20", completionDeadline: "2027-01-16" },
-    { id: "co-system-design", tags: ["architecture"], title: "System design self-study",
-      provider: "Self-study (not Coursera)", duration: "ongoing", targetStartMonth: 2,
-      status: "in_progress", hiringWeight: "high", url: "",
-      completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
-      aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
-    { id: "co-ibm-genai", tags: ["ai"], title: "IBM Generative AI Engineering Professional Certificate",
-      provider: "IBM", duration: "~6 mo", targetStartMonth: 3,
-      status: "not_started", hiringWeight: "high",
-      url: "https://www.coursera.org/professional-certificates/ibm-generative-ai-engineering",
-      completedDate: null, aidApplicable: true, financialAidStatus: "applied",
-      aidAppliedDate: "2026-08-10", aidApprovedDate: null, completionDeadline: null },
-    { id: "co-python-ai", tags: ["ai", "python"], title: "Python for AI",
-      provider: "Coursera", duration: "~4 wks", targetStartMonth: 5,
-      status: "not_started", hiringWeight: "medium", url: "",
-      completedDate: null, aidApplicable: true, financialAidStatus: "not_applied",
-      aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
-    { id: "co-sre-gcp", tags: ["devops", "sre"], title: "SRE and DevOps Engineer with Google Cloud",
-      provider: "Google Cloud", duration: "~2 mo", targetStartMonth: 7,
-      status: "not_started", hiringWeight: "high",
-      url: "https://www.coursera.org/professional-certificates/sre-devops-engineer-google-cloud",
-      completedDate: null, aidApplicable: true, financialAidStatus: "not_applied",
-      aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
-  ],
+  courses: seedCourses,
 
   networking: [
     { id: "nw-stripe", tags: ["fintech", "ireland"], name: "Stripe (Dublin)", kind: "company",
@@ -181,19 +431,19 @@ const seed: Seed = {
     { id: "cp-evidence", tags: ["visa", "paperwork"], status: "open", deadline: "2026-10-31",
       title: "Assemble visa evidence pack",
       detail: "Contract, dated payslips, tax records — one folder, scanned + originals." },
-    { id: "cp-coursera-aid", tags: ["learning"], status: "in_progress", deadline: "2026-08-25",
-      title: "Set up Coursera Financial Aid",
-      detail: "15-day review period per course — file for IBM cert now so it's approved by October." },
+    { id: "cp-english-proof", tags: ["learning", "applications"], status: "open", deadline: "2027-01-31",
+      title: "Book IELTS Academic (target 7.0)",
+      detail: "DE/NL visas don't require it, but recruiters screening a Myanmar applicant do. Result should land before the Feb 2027 application wave." },
   ],
 
   weekly: [
     { id: "wk-1", weekStart: weekStartISO(), title: "Draft ADR #1 — Stripe points ledger design",
       refType: "gap_project", refId: "gp-adr", done: true, carriedOver: 0, tags: [] },
-    { id: "wk-2", weekStart: weekStartISO(), title: "File Coursera Financial Aid (IBM cert)",
-      refType: "critical", refId: "cp-coursera-aid", done: false, carriedOver: 0, tags: [] },
+    { id: "wk-2", weekStart: weekStartISO(), title: "Block the daily 90-min slot + Sunday 3 h deep block",
+      refType: "custom", refId: null, done: false, carriedOver: 0, tags: [] },
     { id: "wk-3", weekStart: weekStartISO(), title: "Book passport renewal appointment",
       refType: "critical", refId: "cp-passport", done: false, carriedOver: 1, tags: [] },
-    { id: "wk-4", weekStart: weekStartISO(), title: "Week 1 of Generative AI with LLMs",
+    { id: "wk-4", weekStart: weekStartISO(), title: "Generative AI with LLMs — Module 2 + lab",
       refType: "course", refId: "co-genai-llms", done: false, carriedOver: 0, tags: [] },
   ],
 
@@ -328,6 +578,10 @@ const seed: Seed = {
     },
   ],
 
+  dayEvents: [],
+
+  topicProgress: [],
+
   activity: [],
 };
 
@@ -340,6 +594,16 @@ export function buildSeedData(): { [K in keyof CollectionType]: CollectionType[K
       rows.map((row) => ({ createdAt: now, updatedAt: now, ...row })),
     ])
   ) as unknown as { [K in keyof CollectionType]: CollectionType[K][] };
+
+  /* A fresh workspace starts its path on creation day — chain every course
+     from today rather than from the static seed months. */
+  const patchById = new Map(
+    rescheduleFrom(seedProfile, stamped.courses, now.slice(0, 10)).map((p) => [p.id, p.patch])
+  );
+  stamped.courses = stamped.courses.map((c) => {
+    const patch = patchById.get(c.id);
+    return patch ? { ...c, ...patch } : c;
+  });
 
   const seededEvent: ActivityEvent = {
     id: "act-seeded",

@@ -88,26 +88,26 @@ function ProjectDialog({
           <DialogTitle>{project ? "Edit project" : "Add completed project"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pp-title">Title</Label>
             <Input id="pp-title" value={draft.title} onChange={(e) => set("title", e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="pp-url">URL</Label>
               <Input id="pp-url" value={draft.url} onChange={(e) => set("url", e.target.value)} inputMode="url" />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="pp-stack">Tech stack (comma-separated)</Label>
               <Input id="pp-stack" value={joinList(draft.techStack)} onChange={(e) => set("techStack", parseList(e.target.value))} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="pp-start">Started</Label>
               <Input id="pp-start" type="month" value={draft.startDate} onChange={(e) => set("startDate", e.target.value)} />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="pp-end">Ended</Label>
               <Input
                 id="pp-end"
@@ -121,11 +121,11 @@ function ProjectDialog({
               </label>
             </div>
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pp-summary">Summary</Label>
             <Textarea id="pp-summary" rows={2} value={draft.summary} onChange={(e) => set("summary", e.target.value)} />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pp-metrics">Metrics (one per line)</Label>
             <Textarea
               id="pp-metrics"
@@ -135,7 +135,7 @@ function ProjectDialog({
               placeholder={"0 payment-integrity incidents\n4.5+ yrs in production"}
             />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="pp-proves">What this proves</Label>
             <Textarea id="pp-proves" rows={2} value={draft.proves} onChange={(e) => set("proves", e.target.value)} />
           </div>
@@ -215,11 +215,11 @@ export function Projects() {
                     </DropdownMenu>
                   </div>
 
-                  {p.summary && <p className="text-[13px] leading-relaxed text-foreground/90">{p.summary}</p>}
+                  {p.summary && <p className="text-body-sm text-foreground/90">{p.summary}</p>}
 
                   <div className="flex flex-wrap gap-1">
                     {p.techStack.map((t) => (
-                      <span key={t} className="inline-flex h-5 items-center rounded-md border px-1.5 text-[10px] text-muted-foreground">
+                      <span key={t} className="inline-flex h-5 items-center rounded-full bg-foreground px-2 text-[10px] font-medium text-background">
                         {t}
                       </span>
                     ))}
@@ -229,7 +229,7 @@ export function Projects() {
                     <ul className="space-y-1">
                       {p.metrics.map((m) => (
                         <li key={m} className="flex items-baseline gap-2 text-xs text-muted-foreground">
-                          <span className="size-1.5 shrink-0 translate-y-[-1px] bg-gold" aria-hidden />
+                          <span className="size-1.5 shrink-0 translate-y-[-1px] bg-green" aria-hidden />
                           {m}
                         </li>
                       ))}
@@ -237,8 +237,8 @@ export function Projects() {
                   )}
 
                   {p.proves && (
-                    <div className="mt-auto border-l-2 border-gold pl-2.5">
-                      <div className="text-[9px] font-medium tracking-[0.14em] text-gold-ink uppercase">Proves</div>
+                    <div className="mt-auto border-l-2 border-green pl-2.5">
+                      <div className="text-label text-green-ink uppercase">Proves</div>
                       <p className="mt-0.5 text-[13px] leading-snug">{p.proves}</p>
                     </div>
                   )}

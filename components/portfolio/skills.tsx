@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import type { Skill } from "@/lib/schemas";
 import { proficiencies } from "@/lib/schemas";
 import { logActivity, stores } from "@/lib/storage";
@@ -42,6 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Chip } from "@/components/shared/chip";
 import { ConfirmDelete } from "@/components/shared/confirm-delete";
 import { SectionHeader } from "@/components/shared/section-header";
 
@@ -54,17 +54,9 @@ const PROF_ORDER: Record<Skill["proficiency"], number> = {
 
 function ProficiencyBadge({ level }: { level: Skill["proficiency"] }) {
   return (
-    <span
-      className={cn(
-        "inline-flex h-5 items-center rounded-md px-1.5 text-[10px] font-medium tracking-[0.06em] uppercase",
-        level === "expert" && "bg-primary text-primary-foreground",
-        level === "proficient" && "border font-semibold",
-        level === "working" && "border text-muted-foreground",
-        level === "learning" && "border border-dashed text-muted-foreground"
-      )}
-    >
+    <Chip tone={level === "expert" ? "win" : level === "learning" ? "ghost" : "neutral"} className="uppercase">
       {level}
-    </span>
+    </Chip>
   );
 }
 
@@ -119,12 +111,12 @@ function SkillDialog({
           <DialogDescription>Link proof points so every claim has evidence behind it.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="sk-name">Skill</Label>
             <Input id="sk-name" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Proficiency</Label>
               <Select
                 value={draft.proficiency}
@@ -142,7 +134,7 @@ function SkillDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="sk-years">Years used</Label>
               <Input
                 id="sk-years"
@@ -154,7 +146,7 @@ function SkillDialog({
               />
             </div>
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label>Proof points</Label>
             <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg border p-2">
               {projects.map((p) => (
@@ -246,7 +238,7 @@ export function Skills() {
                       {s.proofPointIds.map((id) => {
                         const label = proofLabel(id);
                         return label ? (
-                          <span key={id} className="inline-flex h-5 max-w-44 items-center truncate rounded-md border px-1.5 text-[10px] text-muted-foreground">
+                          <span key={id} className="inline-flex h-5 max-w-44 items-center truncate rounded-full bg-foreground px-2 text-[10px] font-medium text-background">
                             {label}
                           </span>
                         ) : null;

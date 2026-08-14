@@ -96,16 +96,16 @@ function MilestoneDialog({
           <DialogDescription>Decision points get the flagged diamond treatment.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="ms-title">Title</Label>
             <Input id="ms-title" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="ms-detail">Detail</Label>
             <Textarea id="ms-detail" rows={2} value={draft.detail} onChange={(e) => setDraft((d) => ({ ...d, detail: e.target.value }))} />
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Month</Label>
               <Select value={draft.month} onValueChange={(v) => setDraft((d) => ({ ...d, month: v }))}>
                 <SelectTrigger aria-label="Month">
@@ -120,7 +120,7 @@ function MilestoneDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Kind</Label>
               <Select value={draft.kind} onValueChange={(v) => setDraft((d) => ({ ...d, kind: v as Milestone["kind"] }))}>
                 <SelectTrigger aria-label="Kind">
@@ -135,7 +135,7 @@ function MilestoneDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Status</Label>
               <Select value={draft.status} onValueChange={(v) => setDraft((d) => ({ ...d, status: v as Milestone["status"] }))}>
                 <SelectTrigger aria-label="Status">
@@ -186,37 +186,41 @@ function MilestoneDialog({
   );
 }
 
-function Node({ milestone, onClick }: { milestone: Milestone; onClick: () => void }) {
+/* Gantt-style bar — a black rounded pill on the month grid.
+   Done bars go green; decision points are outlined. */
+function Bar({
+  milestone,
+  col,
+  span,
+  row,
+  onClick,
+}: {
+  milestone: Milestone;
+  col: number;
+  span: number;
+  row: number;
+  onClick: () => void;
+}) {
   const done = milestone.status === "done";
   const decision = milestone.kind === "decision";
   return (
     <button
       type="button"
       onClick={onClick}
-      title={`${milestone.title}${decision ? " (decision point)" : ""}`}
+      style={{ gridColumn: `${col} / span ${span}`, gridRow: row }}
+      title={`${milestone.title}${decision ? " · decision point" : ""}${milestone.detail ? `\n${milestone.detail}` : ""}`}
       aria-label={`${decision ? "Decision" : "Milestone"}: ${milestone.title}, ${milestone.status}`}
-      className="group flex w-full flex-col items-center gap-1.5 rounded-md pb-1 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+      className={cn(
+        "z-20 mr-1.5 flex h-[30px] min-w-0 items-center self-center rounded-full px-3.5 outline-none",
+        "transition-transform duration-200 hover:scale-[1.015] focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2",
+        done
+          ? "bg-green text-foreground"
+          : decision
+            ? "border-[1.5px] border-foreground bg-card text-foreground"
+            : "bg-foreground text-background"
+      )}
     >
-      <span
-        aria-hidden
-        className={cn(
-          "block size-2.5 shrink-0 border-[1.5px] bg-card transition-colors duration-200",
-          decision ? "rotate-45 rounded-[1px]" : "rounded-full",
-          done
-            ? "border-gold bg-gold"
-            : decision
-              ? "border-risk group-hover:bg-risk-soft"
-              : "border-foreground/40 group-hover:border-foreground"
-        )}
-      />
-      <span
-        className={cn(
-          "line-clamp-3 w-full text-center text-[10.5px] leading-[1.35]",
-          done ? "text-muted-foreground" : decision ? "font-medium text-risk" : "text-foreground"
-        )}
-      >
-        {milestone.title}
-      </span>
+      <span className="truncate text-[11.5px] font-semibold">{milestone.title}</span>
     </button>
   );
 }
@@ -236,6 +240,26 @@ export function Timeline() {
   });
   const doneCount = milestones.filter((m) => m.status === "done").length;
 
+  const nowISO = monthISOForIndex(profile, Math.max(1, nowIdx));
+  const upcoming = milestones
+    .filter((m) => m.status === "upcoming" && m.month >= nowISO)
+    .sort((a, b) => a.month.localeCompare(b.month));
+  const nextMilestone = upcoming.find((m) => m.kind === "milestone");
+  const nextDecision = upcoming.find((m) => m.kind === "decision");
+
+  /* Waterfall: chronological order, one row per milestone. */
+  const colByISO = new Map(months.map((m) => [m.iso, m.idx]));
+  const sorted = [...milestones].sort(
+    (a, b) => a.month.localeCompare(b.month) || a.title.localeCompare(b.title)
+  );
+  const rows = Math.max(sorted.length, 3);
+  const BAR_SPAN = 4;
+
+  function axisLabel(iso: string): string {
+    const d = new Date(iso + "-01T00:00:00");
+    return `${d.toLocaleDateString("en-US", { month: "short" })} ’${String(d.getFullYear()).slice(2)}`;
+  }
+
   return (
     <section className="space-y-3" aria-label="Timeline and milestones">
       <SectionHeader
@@ -251,53 +275,100 @@ export function Timeline() {
         }
       />
       <Card>
-        <CardContent className="overflow-x-auto">
-          <motion.div variants={fadeIn} initial="hidden" animate="show" className="relative min-w-[1560px] pt-2 pb-1">
-            {/* the rail */}
-            <div aria-hidden className="absolute top-[52px] right-0 left-0 h-px bg-border" />
-            <div className="grid" style={{ gridTemplateColumns: `repeat(${months.length}, minmax(0, 1fr))` }}>
-              {months.map(({ idx, iso, items }) => {
-                const isNow = idx === nowIdx;
-                return (
-                  <div key={iso} className="flex min-w-0 flex-col items-center px-1">
-                    <div
-                      className={cn(
-                        "flex h-8 flex-col items-center justify-end pb-1 text-[10px] leading-tight",
-                        isNow ? "font-semibold text-gold-ink" : "text-muted-foreground"
-                      )}
-                    >
-                      {isNow && <span className="mb-0.5 text-[9px] tracking-[0.12em] uppercase">You are here</span>}
-                      <span className="font-medium tabular-nums">M{idx}</span>
-                    </div>
-                    {/* tick on the rail */}
-                    <div
-                      aria-hidden
-                      className={cn("h-4 w-px", isNow ? "w-[3px] rounded-full bg-gold" : "bg-border")}
+        <CardContent className="space-y-4">
+          {(nextMilestone || nextDecision) && (
+            <p className="text-body-sm text-muted-foreground">
+              {nextMilestone && (
+                <>
+                  Next milestone: <span className="font-semibold text-foreground">{nextMilestone.title}</span>{" "}
+                  <span className="tabular-nums">({formatMonth(nextMilestone.month)})</span>
+                </>
+              )}
+              {nextMilestone && nextDecision && " · "}
+              {nextDecision && (
+                <>
+                  Next decision: <span className="font-semibold text-foreground">{nextDecision.title}</span>{" "}
+                  <span className="tabular-nums">({formatMonth(nextDecision.month)})</span>
+                </>
+              )}
+            </p>
+          )}
+          <div className="overflow-x-auto">
+            <motion.div variants={fadeIn} initial="hidden" animate="show" className="min-w-[900px]">
+              {/* waterfall chart */}
+              <div
+                className="relative grid"
+                style={{
+                  gridTemplateColumns: `repeat(${months.length}, minmax(0, 1fr))`,
+                  gridAutoRows: "38px",
+                }}
+              >
+                {/* dashed month gridlines */}
+                {months.map(({ idx }) => (
+                  <div
+                    key={`grid-${idx}`}
+                    aria-hidden
+                    className={cn("pointer-events-none border-dashed border-border", idx > 1 && "border-l")}
+                    style={{ gridColumn: idx, gridRow: `1 / span ${rows}` }}
+                  />
+                ))}
+                {/* now marker */}
+                {nowIdx >= 1 && nowIdx <= months.length && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none z-10 border-l-2 border-green"
+                    style={{ gridColumn: nowIdx, gridRow: `1 / span ${rows}` }}
+                  />
+                )}
+                {sorted.map((m, i) => {
+                  const col = Math.min(colByISO.get(m.month) ?? 1, months.length);
+                  const span = Math.min(BAR_SPAN, months.length - col + 1);
+                  return (
+                    <Bar
+                      key={m.id}
+                      milestone={m}
+                      col={col}
+                      span={span}
+                      row={i + 1}
+                      onClick={() => setDialog({ open: true, milestone: m })}
                     />
-                    <div className={cn("mt-1 text-[10px] tabular-nums", isNow ? "font-medium text-gold-ink" : "text-muted-foreground/80")}>
-                      {formatMonth(iso)}
-                    </div>
-                    <div className="mt-2.5 w-full space-y-2">
-                      {items.map((m) => (
-                        <Node key={m.id} milestone={m} onClick={() => setDialog({ open: true, milestone: m })} />
-                      ))}
-                    </div>
+                  );
+                })}
+              </div>
+              {/* month axis */}
+              <div
+                className="mt-2 grid border-t pt-2"
+                style={{ gridTemplateColumns: `repeat(${months.length}, minmax(0, 1fr))` }}
+              >
+                {months.map(({ idx, iso }) => (
+                  <div
+                    key={iso}
+                    className={cn(
+                      "text-[10px] whitespace-nowrap tabular-nums",
+                      idx === nowIdx ? "font-bold text-green-ink" : "text-subtle"
+                    )}
+                  >
+                    {axisLabel(iso)}
                   </div>
-                );
-              })}
-            </div>
-            <div className="mt-2 flex items-center gap-4 text-[10.5px] text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full border-[1.5px] border-foreground/40 bg-card" aria-hidden /> milestone
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="size-2 rotate-45 rounded-[1px] border-[1.5px] border-risk bg-card" aria-hidden /> decision point
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full border-[1.5px] border-gold bg-gold" aria-hidden /> done
-              </span>
-            </div>
-          </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+          <div className="flex items-center gap-3 text-[10.5px] text-muted-foreground">
+            <span className="inline-flex h-5 items-center rounded-full bg-foreground px-2.5 font-medium text-background">
+              milestone
+            </span>
+            <span className="inline-flex h-5 items-center rounded-full border-[1.5px] border-foreground bg-card px-2.5 font-medium">
+              decision
+            </span>
+            <span className="inline-flex h-5 items-center rounded-full bg-green px-2.5 font-medium text-foreground">
+              done
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-3 w-0.5 bg-green" aria-hidden /> now
+            </span>
+            <span className="ml-auto hidden text-subtle sm:block">click a bar to edit</span>
+          </div>
         </CardContent>
       </Card>
       <MilestoneDialog

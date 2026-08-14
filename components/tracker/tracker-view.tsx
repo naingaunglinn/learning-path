@@ -17,7 +17,7 @@ export function TrackerView() {
       animate="show"
       className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]"
     >
-      <div className="min-w-0 space-y-6">
+      <div className="min-w-0 space-y-8">
         <motion.div variants={fadeUp}>
           <Timeline />
         </motion.div>
@@ -32,7 +32,7 @@ export function TrackerView() {
         </motion.div>
       </div>
       {/* pinned rail — critical path stays in view */}
-      <motion.div variants={fadeUp} className="space-y-4 xl:sticky xl:top-[72px] xl:self-start">
+      <motion.div variants={fadeUp} className="space-y-4 xl:sticky xl:top-2 xl:self-start">
         <CriticalPanel editable />
         <VisaPanel />
       </motion.div>

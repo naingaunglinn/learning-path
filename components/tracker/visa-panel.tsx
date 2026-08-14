@@ -82,12 +82,12 @@ export function VisaPanel() {
       <CardContent>
         <ul>
           {sorted.map((t) => (
-            <li key={t.id} className="border-b border-border/60 py-2.5 first:pt-0 last:border-0 last:pb-0">
+            <li key={t.id} className="border-b border-border/60 py-3 first:pt-0 last:border-0 last:pb-0">
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-medium">
+                <span className="min-w-0 truncate text-[13px] font-medium">
                   {t.country} · {t.name}
                 </span>
-                {t.eligibleNow && <Chip tone="gold">eligible now</Chip>}
+                {t.eligibleNow && <Chip tone="win" className="h-5">eligible</Chip>}
                 <span className="ml-auto">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -106,11 +106,12 @@ export function VisaPanel() {
                   </DropdownMenu>
                 </span>
               </div>
-              <div className="mt-0.5 text-xs text-muted-foreground">
+              <div
+                className="mt-0.5 truncate text-meta text-muted-foreground"
+                title={[t.requirement, t.notes].filter(Boolean).join(" — ") || undefined}
+              >
                 {t.threshold}
-                {t.requirement && ` · ${t.requirement}`}
               </div>
-              {t.notes && <div className="mt-0.5 text-xs text-muted-foreground/80">{t.notes}</div>}
             </li>
           ))}
         </ul>
@@ -126,24 +127,24 @@ export function VisaPanel() {
           </DialogHeader>
           <div className="grid gap-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
+              <div className="grid gap-2">
                 <Label htmlFor="vt-country">Country</Label>
                 <Input id="vt-country" value={draft.country} onChange={(e) => set("country", e.target.value)} />
               </div>
-              <div className="grid gap-1.5">
+              <div className="grid gap-2">
                 <Label htmlFor="vt-name">Track name</Label>
                 <Input id="vt-name" value={draft.name} onChange={(e) => set("name", e.target.value)} />
               </div>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="vt-threshold">Threshold</Label>
               <Input id="vt-threshold" value={draft.threshold} onChange={(e) => set("threshold", e.target.value)} placeholder="e.g. €45,934.20 salary" />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="vt-req">Requirement</Label>
               <Input id="vt-req" value={draft.requirement} onChange={(e) => set("requirement", e.target.value)} />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="vt-notes">Notes</Label>
               <Textarea id="vt-notes" rows={2} value={draft.notes} onChange={(e) => set("notes", e.target.value)} />
             </div>

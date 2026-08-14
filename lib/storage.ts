@@ -9,7 +9,8 @@ import {
   Profile,
   ProfileSchema,
 } from "./schemas";
-import { buildSeedData, seedProfile } from "./seed-data";
+import { buildSeedData, seedCourses, seedMilestones, seedProfile } from "./seed-data";
+import { rescheduleFrom } from "./schedule";
 import { newId } from "./id";
 
 /* ------------------------------------------------------------------ */
@@ -24,8 +25,267 @@ const PROFILE_KEY = `${NS}:profile`;
 const ACTIVITY_CAP = 50;
 /* v2: courses gained targetStartMonth + Financial Aid fields (2026-08).
    v1 shipped with no write UI, so v1 data can only be seed data and is
-   safe to rebuild. Future bumps need a real migration instead. */
-const SCHEMA_VERSION = 2;
+   safe to rebuild.
+   v3: targetStartMonth became nullable ("Unscheduled"), seed months were
+   re-sequenced per the design-v2 spec, and the dayEvents collection was
+   added. v2 workspaces may hold user-entered data, so v2 -> v3 migrates
+   in place instead of reseeding.
+   v4: profile gained workspaceCreatedAt (overdue suppression for derived
+   deadlines that predate the workspace).
+   v5: the Coursera Plus era (2026-08). Courses gained durationWeeks + phase;
+   financial-aid tracking became legacy (off by default). The seed curriculum
+   and goal milestones were re-authored around the verified Plus path, so
+   v4 -> v5 swaps seed-owned rows for their v5 versions in place while
+   preserving user progress (status/completedDate) and user-added rows.
+   v6: the Warm-up parallel track (fundamentals courses) joined the seed
+   curriculum — v5 -> v6 is add-only: unknown seed course ids are appended,
+   nothing existing is touched.
+   v7: courses gained plannedStartDate (day-precise starts). v6 -> v7 runs
+   one "Replan from today" so the daily calendar fill flows from the
+   migration date; the same replan is available in the Learning toolbar.
+   v8: replan semantics corrected — day 1 of the in-progress course IS the
+   replan date (the path was created today, not on the 1st of the month).
+   v7 -> v8 re-runs the replan under the new rule.
+   v9: one subject per day — the warm-up track moved from daily 30-min
+   fragments to a single Sunday 3 h block (same weekly rate; a pure
+   derive-logic change), and system-design self-study moved to M9 so it
+   takes over the Sunday slot only after the warm-up ends.
+   v10: courses gained a syllabus checklist (modules), seeded from each
+   course's published Coursera syllabus. v9 -> v10 fills the checklist onto
+   seed-owned rows that don't have one; completed courses arrive fully
+   checked. The same backfill runs on import for pre-v10 backups.
+   v11: re-runs the v10 backfill. A tab still running pre-v10 code strips
+   the modules field on any write (Zod drops unknown keys), leaving a
+   v10-stamped store with empty checklists; the backfill is idempotent, so
+   healthy stores pass through untouched. */
+const SCHEMA_VERSION = 11;
+
+/* Roadmap re-sequencing applied to the five known seed courses on migration. */
+const V3_SEED_COURSE_MONTHS: Record<string, number> = {
+  "co-genai-llms": 1,
+  "co-python-ai": 1,
+  "co-ibm-genai": 4,
+  "co-system-design": 8,
+  "co-sre-gcp": 11,
+};
+
+function migrateV2toV3() {
+  const raw = backend.read(`${NS}:courses`);
+  if (raw) {
+    try {
+      const rows: Array<Record<string, unknown>> = JSON.parse(raw);
+      for (const row of rows) {
+        if (typeof row.id === "string" && row.id in V3_SEED_COURSE_MONTHS) {
+          row.targetStartMonth = V3_SEED_COURSE_MONTHS[row.id];
+        }
+        if (row.targetStartMonth === undefined) row.targetStartMonth = null;
+      }
+      backend.write(`${NS}:courses`, JSON.stringify(rows));
+    } catch {
+      /* unreadable courses payload — schema is null-tolerant, leave it */
+    }
+  }
+  if (!backend.read(`${NS}:dayEvents`)) backend.write(`${NS}:dayEvents`, "[]");
+}
+
+function migrateV3toV4() {
+  const raw = backend.read(PROFILE_KEY);
+  if (!raw) return;
+  try {
+    const profile = JSON.parse(raw);
+    if (!profile.workspaceCreatedAt) {
+      profile.workspaceCreatedAt = new Date().toISOString().slice(0, 10);
+      backend.write(PROFILE_KEY, JSON.stringify(profile));
+    }
+  } catch {
+    /* schema default fills it on next read */
+  }
+}
+
+/* Seed rows v5 removes outright: aid-driven items made moot by Coursera Plus,
+   and milestones superseded by the re-authored goal timeline. */
+const V5_REMOVED_IDS: Partial<Record<CollectionKey, string[]>> = {
+  critical: ["cp-coursera-aid"],
+  weekly: ["wk-2"], // "File Coursera Financial Aid" — replaced in the v5 seed
+  milestones: ["ms-2027-05", "ms-2027-10"],
+};
+
+/** Seed-owned rows get their v5 version (keeping user progress fields);
+    user-added rows pass through untouched. */
+function migrateV4toV5() {
+  const now = new Date().toISOString();
+
+  function mergeCollection(
+    key: "courses" | "milestones",
+    v5Rows: Array<Record<string, unknown> & { id: string }>,
+    progressFields: string[]
+  ) {
+    let old: Array<Record<string, unknown>> = [];
+    try {
+      old = JSON.parse(backend.read(`${NS}:${key}`) ?? "[]");
+    } catch {
+      /* unreadable — rebuild from the v5 seed alone */
+    }
+    const oldById = new Map(old.map((r) => [r.id as string, r]));
+    const v5Ids = new Set(v5Rows.map((r) => r.id));
+    const removed = new Set(V5_REMOVED_IDS[key] ?? []);
+
+    const merged: Array<Record<string, unknown>> = v5Rows.map((row) => {
+      const prev = oldById.get(row.id);
+      const kept = Object.fromEntries(
+        progressFields.filter((f) => prev && prev[f] !== undefined).map((f) => [f, prev![f]])
+      );
+      return { createdAt: prev?.createdAt ?? now, updatedAt: now, ...row, ...kept };
+    });
+    for (const row of old) {
+      const id = row.id as string;
+      if (!v5Ids.has(id) && !removed.has(id)) merged.push(row);
+    }
+    backend.write(`${NS}:${key}`, JSON.stringify(merged));
+  }
+
+  mergeCollection("courses", seedCourses as never, ["status", "completedDate"]);
+  mergeCollection("milestones", seedMilestones as never, ["status"]);
+
+  for (const key of ["critical", "weekly"] as const) {
+    const removed = new Set(V5_REMOVED_IDS[key] ?? []);
+    try {
+      const rows: Array<Record<string, unknown>> = JSON.parse(backend.read(`${NS}:${key}`) ?? "[]");
+      backend.write(
+        `${NS}:${key}`,
+        JSON.stringify(rows.filter((r) => !(removed.has(r.id as string) && r.done !== true && r.status !== "done")))
+      );
+    } catch {
+      /* leave unreadable payloads alone; safeParse drops bad rows on read */
+    }
+  }
+}
+
+/** Append seed courses the workspace doesn't have yet (the Warm-up track).
+    Add-only: existing rows, including user edits, are never rewritten. */
+function migrateV5toV6() {
+  const now = new Date().toISOString();
+  try {
+    const rows: Array<Record<string, unknown>> = JSON.parse(backend.read(`${NS}:courses`) ?? "[]");
+    const have = new Set(rows.map((r) => r.id));
+    const added = seedCourses
+      .filter((c) => !have.has(c.id))
+      .map((c) => ({ createdAt: now, updatedAt: now, ...c }));
+    if (added.length) backend.write(`${NS}:courses`, JSON.stringify([...rows, ...added]));
+  } catch {
+    /* unreadable courses payload — leave it; safeParse guards reads */
+  }
+}
+
+/** Stamp day-precise starts by replanning the remaining path from today.
+    Runs for v6 -> v7 and again for v7 -> v8 (semantics change). */
+function replanCoursesFromToday() {
+  try {
+    const rows: Array<Record<string, unknown>> = JSON.parse(backend.read(`${NS}:courses`) ?? "[]");
+    const profileRaw = JSON.parse(backend.read(PROFILE_KEY) ?? "{}");
+    const profile = {
+      timelineStart: typeof profileRaw?.timelineStart === "string" ? profileRaw.timelineStart : "2026-08",
+      timelineMonths: typeof profileRaw?.timelineMonths === "number" ? profileRaw.timelineMonths : 18,
+    };
+    const patches = rescheduleFrom(profile, rows as never, new Date().toISOString().slice(0, 10));
+    const byId = new Map(patches.map((p) => [p.id, p.patch]));
+    const now = new Date().toISOString();
+    for (const row of rows) {
+      const patch = byId.get(row.id as string);
+      if (patch) Object.assign(row, patch, { updatedAt: now });
+    }
+    backend.write(`${NS}:courses`, JSON.stringify(rows));
+  } catch {
+    /* unreadable payload — plannedStartDate stays null; month starts apply */
+  }
+}
+
+/** Move the seed system-design row to M9 (Sundays hand over from the
+    warm-up track). Skipped if the user already rescheduled or finished it. */
+function migrateV8toV9() {
+  try {
+    const rows: Array<Record<string, unknown>> = JSON.parse(backend.read(`${NS}:courses`) ?? "[]");
+    const row = rows.find((r) => r.id === "co-system-design");
+    if (row && row.status !== "completed" && row.targetStartMonth === 6) {
+      row.targetStartMonth = 9;
+      row.plannedStartDate = null;
+      row.updatedAt = new Date().toISOString();
+      backend.write(`${NS}:courses`, JSON.stringify(rows));
+    }
+  } catch {
+    /* leave it — worst case two Sunday tracks overlap for a few weeks */
+  }
+}
+
+/** Fill the seeded syllabus checklist onto known courses that lack one.
+    Add-only per row: a non-empty modules list is never rewritten, and a
+    completed course gets its checklist stamped done. Shared by the v10
+    migration and by import (pre-v10 backups have no modules). */
+function backfillCourseModules(rows: Array<Record<string, unknown>>): boolean {
+  const seedModules = new Map(seedCourses.map((c) => [c.id, c.modules]));
+  const now = new Date().toISOString();
+  let changed = false;
+  for (const row of rows) {
+    const completed = row.status === "completed";
+    const stamp =
+      typeof row.completedDate === "string" && row.completedDate
+        ? row.completedDate
+        : now.slice(0, 10);
+    const existing = Array.isArray(row.modules)
+      ? (row.modules as Array<Record<string, unknown>>)
+      : [];
+    if (existing.length === 0) {
+      const seeded = seedModules.get(row.id as string);
+      if (!seeded?.length) continue;
+      row.modules = seeded.map((m) => ({
+        ...m,
+        done: completed,
+        completedDate: completed ? stamp : null,
+      }));
+    } else if (completed && existing.some((m) => !m.done)) {
+      /* Completed course ⇒ every module done. Normalizes rows whose
+         checklist arrived unchecked via the v5 seed merge on old stores. */
+      row.modules = existing.map((m) => (m.done ? m : { ...m, done: true, completedDate: stamp }));
+    } else {
+      continue;
+    }
+    row.updatedAt = now;
+    changed = true;
+  }
+  return changed;
+}
+
+function migrateV9toV10() {
+  try {
+    const rows: Array<Record<string, unknown>> = JSON.parse(backend.read(`${NS}:courses`) ?? "[]");
+    if (backfillCourseModules(rows)) backend.write(`${NS}:courses`, JSON.stringify(rows));
+  } catch {
+    /* unreadable payload — the schema parses modules to [] and the UI degrades */
+  }
+}
+
+/** A tab still running pre-v10 code strips the modules KEY from every row
+    whenever it writes courses (Zod drops unknown keys) — and if a current
+    tab then re-reads and saves, the stripped rows come back as explicit
+    modules: [] on every course. Both signatures mean the same thing: the
+    whole store lost its checklists. Detect that on every load and refill.
+    The trigger is "no seed course has ANY checklist content" — a user
+    emptying one course's checklist in the dialog leaves the others
+    non-empty, so deliberate edits are never overridden. */
+function healStrippedModules() {
+  try {
+    const raw = backend.read(`${NS}:courses`);
+    if (!raw) return;
+    const rows: Array<Record<string, unknown>> = JSON.parse(raw);
+    const seedIds = new Set(seedCourses.map((c) => c.id));
+    const seedRows = rows.filter((r) => seedIds.has(r.id as string));
+    const anyFilled = seedRows.some((r) => Array.isArray(r.modules) && r.modules.length > 0);
+    if (seedRows.length === 0 || anyFilled) return;
+    if (backfillCourseModules(rows)) backend.write(`${NS}:courses`, JSON.stringify(rows));
+  } catch {
+    /* unreadable payload — reads degrade to [] */
+  }
+}
 
 const isBrowser = typeof window !== "undefined";
 
@@ -81,7 +341,28 @@ export function ensureSeeded() {
   const rawMeta = backend.read(META_KEY);
   if (rawMeta) {
     try {
-      if (JSON.parse(rawMeta).schemaVersion === SCHEMA_VERSION) return;
+      const version = JSON.parse(rawMeta).schemaVersion;
+      if (version === SCHEMA_VERSION) {
+        healStrippedModules();
+        return;
+      }
+      if (version >= 2 && version < SCHEMA_VERSION) {
+        if (version === 2) migrateV2toV3();
+        if (version <= 3) migrateV3toV4();
+        if (version <= 4) migrateV4toV5();
+        if (version <= 5) migrateV5toV6();
+        if (version <= 7) replanCoursesFromToday();
+        if (version <= 8) migrateV8toV9();
+        /* <= 10, not <= 9: v11 re-runs the same idempotent backfill to heal
+           stores whose checklists were stripped by a stale pre-v10 tab. */
+        if (version <= 10) migrateV9toV10();
+        backend.write(
+          META_KEY,
+          JSON.stringify({ migratedAt: new Date().toISOString(), schemaVersion: SCHEMA_VERSION })
+        );
+        return;
+      }
+      /* version 1 predates any write UI -> safe to rebuild below */
     } catch {
       /* unreadable meta -> rebuild */
     }
@@ -90,7 +371,10 @@ export function ensureSeeded() {
   for (const key of Object.keys(collectionSchemas) as CollectionKey[]) {
     backend.write(`${NS}:${key}`, JSON.stringify(data[key]));
   }
-  backend.write(PROFILE_KEY, JSON.stringify(seedProfile));
+  backend.write(
+    PROFILE_KEY,
+    JSON.stringify({ ...seedProfile, workspaceCreatedAt: new Date().toISOString().slice(0, 10) })
+  );
   backend.write(META_KEY, JSON.stringify({ seededAt: new Date().toISOString(), schemaVersion: SCHEMA_VERSION }));
 }
 
@@ -252,6 +536,8 @@ export function importAll(json: unknown): ImportResult {
     return { ok: false, error: `${issue.path.join(".") || "root"}: ${issue.message}` };
   }
   const { data, profile } = result.data;
+  /* Backups from before v10 carry no module checklists — refill seed-owned ones. */
+  backfillCourseModules(data.courses as unknown as Array<Record<string, unknown>>);
   for (const key of Object.keys(collectionSchemas) as CollectionKey[]) {
     stores[key].replaceAll(data[key] as never[]);
   }

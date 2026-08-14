@@ -77,7 +77,7 @@ export function ResumeFixes() {
             {fixes.map((fix) => {
               const done = fix.status === "done";
               return (
-                <li key={fix.id} className="flex items-start gap-2.5 border-b border-border/60 py-2.5 first:pt-0 last:border-0 last:pb-0">
+                <li key={fix.id} className="flex items-start gap-2.5 border-b border-border/60 py-3 first:pt-0 last:border-0 last:pb-0">
                   <Checkbox
                     checked={done}
                     onCheckedChange={(v) => toggle(fix, v === true)}
@@ -85,10 +85,12 @@ export function ResumeFixes() {
                     className="mt-0.5"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className={cn("text-[13px] font-medium leading-snug", done && "text-muted-foreground line-through")}>
+                    <div
+                      className={cn("truncate text-[13px] font-medium leading-snug", done && "text-muted-foreground line-through")}
+                      title={fix.detail || undefined}
+                    >
                       {fix.title}
                     </div>
-                    {fix.detail && !done && <div className="mt-0.5 text-xs text-muted-foreground">{fix.detail}</div>}
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -121,11 +123,11 @@ export function ResumeFixes() {
             <DialogTitle>{dialog.fix ? "Edit resume fix" : "Add resume fix"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="rf-title">Title</Label>
               <Input id="rf-title" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="rf-detail">Detail</Label>
               <Textarea id="rf-detail" rows={3} value={draft.detail} onChange={(e) => setDraft((d) => ({ ...d, detail: e.target.value }))} />
             </div>

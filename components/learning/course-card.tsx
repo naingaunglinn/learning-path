@@ -1,22 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
-import { ArrowUpRight, CircleCheck, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  ArrowUpRight,
+  BookOpen,
+  Check,
+  ChevronDown,
+  MoreHorizontal,
+  Pencil,
+  Play,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { rowInOut } from "@/lib/motion";
 import type { Course, Profile } from "@/lib/schemas";
-import { courseStatuses } from "@/lib/schemas";
 import { logActivity, stores } from "@/lib/storage";
 import {
-  aidApplyByDate,
-  aidCompletionDeadline,
-  deadlineTone,
-  describeDaysUntil,
+  courseEndISO,
+  courseWeekOf,
+  monthISOForIndex,
   withCourseDerivations,
 } from "@/lib/aid";
-import { daysUntil, formatDate, formatDay, todayISO } from "@/lib/dates";
+import { moduleProgress } from "@/lib/modules";
+import { daysUntil, formatDay, formatMonth } from "@/lib/dates";
+import {
+  completeCourse,
+  rechainQueue,
+  reopenCourse,
+  toggleCourseModule,
+} from "./course-actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,35 +43,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Chip } from "@/components/shared/chip";
 import { ConfirmDelete } from "@/components/shared/confirm-delete";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const STATUS_LABEL: Record<(typeof courseStatuses)[number], string> = {
-  not_started: "Not started",
-  in_progress: "In progress",
-  completed: "Completed",
-};
-
-function WeightChip({ weight }: { weight: Course["hiringWeight"] }) {
-  return (
-    <span
-      title="Hiring weight"
-      className={cn(
-        "inline-flex h-5 items-center rounded-md px-1.5 text-[10px] font-medium tracking-[0.06em] uppercase",
-        weight === "high" && "bg-primary text-primary-foreground",
-        weight === "medium" && "border text-foreground",
-        weight === "checkbox" && "border border-dashed text-muted-foreground"
-      )}
-    >
-      {weight}
-    </span>
-  );
-}
 
 export function CourseCard({
   course,
@@ -67,46 +54,29 @@ export function CourseCard({
   onEdit: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
-  const applyBy = aidApplyByDate(profile, course);
-  const deadline = aidCompletionDeadline(course);
+  const done = course.status === "completed";
+  const active = course.status === "in_progress";
+  const finish = courseEndISO(profile, course);
+  const week = courseWeekOf(profile, course);
+  const prog = moduleProgress(course);
 
   function persist(patch: Partial<Course>) {
     stores.courses.update(course.id, withCourseDerivations({ ...course, ...patch }));
   }
 
-  function setStatus(status: Course["status"]) {
+  /* The one interaction that matters: click the circle when a course is done. */
+  function toggleDone() {
+    if (!done) completeCourse(course, profile);
+    else reopenCourse(course);
+  }
+
+  function setStatus(status: Course["status"], message: string) {
     persist({ status });
-    if (status === "completed") {
-      logActivity("completed", `Course completed: ${course.title}`);
-      toast.success("Course completed", {
-        description: "Now listed under Portfolio → Learning completions.",
-      });
-    } else {
-      logActivity("updated", `Course ${STATUS_LABEL[status].toLowerCase()}: ${course.title}`);
-    }
-  }
-
-  function markAidApplied() {
-    persist({ financialAidStatus: "applied", aidAppliedDate: todayISO() });
-    logActivity("updated", `Financial aid filed: ${course.title}`);
-    toast.success("Aid application filed", { description: "Review usually takes ~15 days." });
-  }
-
-  function markAidApproved() {
-    const approved = todayISO();
-    persist({ financialAidStatus: "approved", aidApprovedDate: approved });
-    const d = aidCompletionDeadline({ aidApplicable: true, aidApprovedDate: approved });
-    logActivity("updated", `Financial aid approved: ${course.title}`);
-    toast.success("Aid approved — 180-day window open", {
-      description: d ? `Complete by ${formatDate(d)}.` : undefined,
-    });
-  }
-
-  function markAidDenied() {
-    persist({ financialAidStatus: "denied" });
-    logActivity("updated", `Financial aid denied: ${course.title}`);
-    toast("Aid denied", { description: "You can reapply — Coursera allows a new application after edits." });
+    rechainQueue(profile);
+    logActivity("updated", `${message}: ${course.title}`);
+    toast.success(message);
   }
 
   function removeCourse() {
@@ -115,124 +85,187 @@ export function CourseCard({
     toast("Course removed");
   }
 
-  const done = course.status === "completed";
-
   return (
     <motion.div layout variants={rowInOut} initial="hidden" animate="show" exit="exit">
       <Card size="sm">
-        <CardContent className="space-y-2.5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                {done && <CircleCheck className="size-4 shrink-0 text-gold-ink" aria-hidden />}
-                <span className="truncate text-sm font-medium">{course.title}</span>
-                {course.url && (
-                  <a
-                    href={course.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`Open ${course.title}`}
-                    className="rounded-sm text-muted-foreground outline-none transition-colors duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
-                  >
-                    <ArrowUpRight className="size-3.5" />
-                  </a>
-                )}
-              </div>
-              <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                {course.provider}
-                {course.duration && ` · ${course.duration}`}
-              </div>
+        <CardContent>
+          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleDone}
+            aria-pressed={done}
+            aria-label={done ? `Reopen ${course.title}` : `Mark ${course.title} completed`}
+            title={done ? "Completed — click to reopen" : "Click when finished"}
+            className={cn(
+              "flex size-6 shrink-0 items-center justify-center rounded-full outline-none transition-colors duration-200",
+              "focus-visible:ring-2 focus-visible:ring-ring/60",
+              done
+                ? "bg-green text-foreground"
+                : "border-[1.5px] border-foreground/25 bg-background hover:border-foreground"
+            )}
+          >
+            {done && <Check className="size-3.5" strokeWidth={2.5} />}
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/learning/course?c=${course.id}`}
+                className="truncate rounded-sm text-sm font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/60"
+              >
+                {course.title}
+              </Link>
+              {course.url && (
+                <a
+                  href={course.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open ${course.title}`}
+                  className="rounded-sm text-muted-foreground outline-none transition-colors duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
+                >
+                  <ArrowUpRight className="size-3.5" />
+                </a>
+              )}
             </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <WeightChip weight={course.hiringWeight} />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${course.title}`}>
-                    <MoreHorizontal />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={onEdit}>
-                    <Pencil /> Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
-                    <Trash2 /> Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="mt-0.5 truncate text-xs text-muted-foreground">
+              {course.provider}
+              {course.duration && ` · ${course.duration}`}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Select value={course.status} onValueChange={(v) => setStatus(v as Course["status"])}>
-              <SelectTrigger size="sm" className="h-6 w-[122px] text-xs" aria-label="Course status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {courseStatuses.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {STATUS_LABEL[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {done && course.completedDate && (
-              <Chip tone="gold">done {formatDay(course.completedDate)}</Chip>
+          <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+            {done && course.completedDate && <Chip tone="win">done {formatDay(course.completedDate)}</Chip>}
+            {active && (
+              <Chip tone="neutral">
+                in progress{week && course.durationWeeks ? ` · wk ${week}/${course.durationWeeks}` : ""}
+              </Chip>
             )}
-
-            {course.aidApplicable && !done && (
-              <>
-                {course.financialAidStatus === "not_applied" && applyBy && (
-                  <>
-                    <Chip
-                      tone={deadlineTone(applyBy)}
-                      title="Start month minus ~3 weeks (15-day review + buffer)"
-                    >
-                      aid: apply by {formatDay(applyBy)} · {describeDaysUntil(applyBy)}
-                    </Chip>
-                    <Button variant="ghost" size="xs" onClick={markAidApplied}>
-                      Mark applied
-                    </Button>
-                  </>
-                )}
-                {course.financialAidStatus === "applied" && (
-                  <>
-                    <Chip tone="muted" title="Coursera review takes ~15 days">
-                      aid in review{course.aidAppliedDate && ` · filed ${formatDay(course.aidAppliedDate)}`}
-                    </Chip>
-                    <Button variant="ghost" size="xs" onClick={markAidApproved}>
-                      Mark approved
-                    </Button>
-                    <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={markAidDenied}>
-                      Denied?
-                    </Button>
-                  </>
-                )}
-                {course.financialAidStatus === "approved" && deadline && (
-                  <>
-                    <Chip tone="gold">aid approved</Chip>
-                    <Chip
-                      tone={deadlineTone(deadline)}
-                      title="180-day completion window from aid approval"
-                    >
-                      {daysUntil(deadline) < 0
-                        ? `window closed ${formatDay(deadline)}`
-                        : `${daysUntil(deadline)}d left · complete by ${formatDate(deadline)}`}
-                    </Chip>
-                  </>
-                )}
-                {course.financialAidStatus === "denied" && (
-                  <>
-                    <Chip tone="risk">aid denied</Chip>
-                    <Button variant="ghost" size="xs" onClick={markAidApplied}>
-                      Reapply
-                    </Button>
-                  </>
-                )}
-              </>
+            {active && finish && (
+              <Chip
+                tone={daysUntil(finish) < 0 ? "risk" : "ghost"}
+                title="Target finish at ~10 h/week"
+              >
+                {daysUntil(finish) < 0 ? `past target · ${formatDay(finish)}` : `finish by ${formatDay(finish)}`}
+              </Chip>
+            )}
+            {!done && !active && (
+              <Chip tone="ghost">
+                {course.targetStartMonth !== null
+                  ? `starts ${formatMonth(monthISOForIndex(profile, course.targetStartMonth))}`
+                  : "unscheduled"}
+              </Chip>
+            )}
+            {course.aidApplicable && course.financialAidStatus !== "not_applied" && (
+              <Chip tone="ghost" title="Legacy financial-aid tracking">
+                aid {course.financialAidStatus}
+              </Chip>
             )}
           </div>
+
+          {prog.total > 0 && (
+            <button
+              type="button"
+              onClick={() => setExpanded((e) => !e)}
+              aria-expanded={expanded}
+              aria-label={`${prog.done} of ${prog.total} modules done — toggle the checklist`}
+              title={expanded ? "Hide the module checklist" : "Show the module checklist"}
+              className={cn(
+                "flex h-6 shrink-0 items-center gap-1 rounded-full px-2 outline-none transition-colors duration-200",
+                "text-meta text-muted-foreground tabular-nums",
+                "hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
+              )}
+            >
+              {prog.done}/{prog.total}
+              <ChevronDown
+                className={cn("size-3.5 transition-transform duration-200", expanded && "rotate-180")}
+              />
+            </button>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${course.title}`}>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/learning/course?c=${course.id}`}>
+                  <BookOpen /> Course page
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onEdit}>
+                <Pencil /> Edit
+              </DropdownMenuItem>
+              {!active && !done && (
+                <DropdownMenuItem onSelect={() => setStatus("in_progress", "Course started")}>
+                  <Play /> Start now
+                </DropdownMenuItem>
+              )}
+              {active && (
+                <DropdownMenuItem onSelect={() => setStatus("not_started", "Course moved back to queue")}>
+                  <RotateCcw /> Back to queue
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
+                <Trash2 /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {expanded && prog.total > 0 && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="overflow-hidden"
+              >
+                <ul className="mt-3 space-y-0.5 border-t pt-2.5 pl-9">
+                  {course.modules.map((m) => (
+                    <li key={m.id}>
+                      <button
+                        type="button"
+                        onClick={() => toggleCourseModule(course, profile, m.id)}
+                        aria-pressed={m.done}
+                        title={m.title}
+                        className={cn(
+                          "group flex w-full items-center gap-2.5 rounded-md px-1.5 py-1 text-left outline-none",
+                          "transition-colors duration-200 hover:bg-background/70 focus-visible:ring-2 focus-visible:ring-ring/60"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex size-4 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
+                            m.done
+                              ? "bg-green text-foreground"
+                              : "border-[1.5px] border-foreground/25 bg-background group-hover:border-foreground"
+                          )}
+                        >
+                          {m.done && <Check className="size-2.5" strokeWidth={3} />}
+                        </span>
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 truncate text-xs",
+                            m.done ? "text-muted-foreground" : "text-foreground"
+                          )}
+                        >
+                          {m.title}
+                        </span>
+                        {m.done && m.completedDate && (
+                          <span className="shrink-0 text-meta text-muted-foreground tabular-nums">
+                            {formatDay(m.completedDate)}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
 
@@ -240,7 +273,7 @@ export function CourseCard({
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         what={course.title}
-        detail="This removes the course and its aid history from the roadmap. There is no undo."
+        detail="This removes the course from the path. There is no undo."
         onConfirm={removeCourse}
       />
     </motion.div>

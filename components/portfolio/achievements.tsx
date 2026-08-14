@@ -79,17 +79,17 @@ function AchievementDialog({
         </DialogHeader>
         <div className="grid gap-4">
           <div className="grid grid-cols-[120px_1fr] gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="ac-value">The number</Label>
               <Input id="ac-value" value={draft.value} onChange={(e) => setDraft((d) => ({ ...d, value: e.target.value }))} placeholder="-38% p95" />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="ac-context">What it measures</Label>
               <Textarea id="ac-context" rows={2} value={draft.context} onChange={(e) => setDraft((d) => ({ ...d, context: e.target.value }))} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="ac-date">Date</Label>
               <Input
                 id="ac-date"
@@ -98,7 +98,7 @@ function AchievementDialog({
                 onChange={(e) => setDraft((d) => ({ ...d, date: e.target.value || null }))}
               />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Source project</Label>
               <Select
                 value={draft.sourceProjectId ?? "none"}
@@ -150,7 +150,7 @@ export function Achievements() {
           </Button>
         }
       />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence initial={false}>
           {achievements.map((a) => {
             const source = a.sourceProjectId ? projects.find((p) => p.id === a.sourceProjectId) : null;
@@ -160,7 +160,7 @@ export function Achievements() {
                   <CardContent className="flex h-full flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <span className="flex items-baseline gap-1.5 text-xl leading-7 font-semibold tabular-nums">
-                        <span aria-hidden className="size-1.5 shrink-0 translate-y-[-3px] bg-gold" />
+                        <span aria-hidden className="size-1.5 shrink-0 translate-y-[-3px] bg-green" />
                         {a.value}
                       </span>
                       <DropdownMenu>
@@ -181,7 +181,7 @@ export function Achievements() {
                     </div>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{a.context}</p>
                     {source && (
-                      <span className="mt-2 inline-flex h-5 w-fit max-w-full items-center truncate rounded-md border px-1.5 text-[10px] text-muted-foreground">
+                      <span className="mt-2 inline-flex h-5 w-fit max-w-full items-center truncate rounded-full bg-foreground px-2 text-[10px] font-medium text-background">
                         {source.title}
                       </span>
                     )}

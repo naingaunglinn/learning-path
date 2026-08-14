@@ -10,7 +10,7 @@ import { Stories } from "./stories";
 
 export function PortfolioView() {
   return (
-    <motion.div variants={staggerParent} initial="hidden" animate="show" className="space-y-6">
+    <motion.div variants={staggerParent} initial="hidden" animate="show" className="space-y-8">
       <motion.div variants={fadeUp}>
         <Projects />
       </motion.div>

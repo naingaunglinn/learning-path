@@ -6,6 +6,7 @@ import type { Course, Profile } from "@/lib/schemas";
 import { courseStatuses, financialAidStatuses, hiringWeights } from "@/lib/schemas";
 import { logActivity, stores } from "@/lib/storage";
 import { aidCompletionDeadline, monthISOForIndex, withCourseDerivations } from "@/lib/aid";
+import { newId } from "@/lib/id";
 import { formatDate, formatMonth } from "@/lib/dates";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -34,17 +36,29 @@ const EMPTY: Draft = {
   provider: "",
   duration: "",
   url: "",
-  targetStartMonth: 1,
+  targetStartMonth: null,
+  plannedStartDate: null,
+  durationWeeks: null,
+  phase: "",
+  modules: [],
   status: "not_started",
   hiringWeight: "medium",
   completedDate: null,
-  aidApplicable: true,
+  /* Coursera Plus covers the catalog — aid tracking is legacy, off by default. */
+  aidApplicable: false,
   financialAidStatus: "not_applied",
   aidAppliedDate: null,
   aidApprovedDate: null,
   completionDeadline: null,
   tags: [],
 };
+
+const PHASE_SUGGESTIONS = [
+  "Foundations",
+  "GenAI engineering",
+  "Production & cloud",
+  "Interview & landing",
+];
 
 const STATUS_LABEL = { not_started: "Not started", in_progress: "In progress", completed: "Completed" };
 const AID_LABEL = { not_applied: "Not applied", applied: "Applied (in review)", approved: "Approved", denied: "Denied" };
@@ -61,11 +75,13 @@ export function CourseDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [modulesText, setModulesText] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setDraft(course ? { ...course } : EMPTY);
+      setModulesText((course?.modules ?? []).map((m) => m.title).join("\n"));
       setError(null);
     }
   }, [open, course]);
@@ -80,7 +96,26 @@ export function CourseDialog({
       setError("Title is required.");
       return;
     }
-    const finalized = withCourseDerivations({ ...draft, title: draft.title.trim() });
+    /* One module per line; an unchanged line keeps its check state. */
+    const prevModules = [...(course?.modules ?? [])];
+    const modules = modulesText
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((title) => {
+        const i = prevModules.findIndex((m) => m.title === title);
+        return i >= 0
+          ? prevModules.splice(i, 1)[0]
+          : { id: newId(), title, done: false, completedDate: null };
+      });
+    const finalized = withCourseDerivations({
+      ...draft,
+      title: draft.title.trim(),
+      modules,
+      /* A hand-picked start month outranks a stale replanned date. */
+      plannedStartDate:
+        course && draft.targetStartMonth !== course.targetStartMonth ? null : draft.plannedStartDate,
+    });
     try {
       if (course) {
         stores.courses.update(course.id, finalized);
@@ -110,7 +145,7 @@ export function CourseDialog({
         </DialogHeader>
 
         <div className="grid gap-4">
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="course-title">Title</Label>
             <Input
               id="course-title"
@@ -123,7 +158,7 @@ export function CourseDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label htmlFor="course-provider">Provider</Label>
               <Input
                 id="course-provider"
@@ -132,18 +167,48 @@ export function CourseDialog({
                 placeholder="DeepLearning.AI"
               />
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="course-duration">Duration</Label>
+            <div className="grid gap-2">
+              <Label htmlFor="course-duration">Duration (shown on the card)</Label>
               <Input
                 id="course-duration"
                 value={draft.duration}
                 onChange={(e) => set("duration", e.target.value)}
-                placeholder="~6 wks"
+                placeholder="3 courses · ~95 h"
               />
             </div>
           </div>
 
-          <div className="grid gap-1.5">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor="course-weeks">Plan length (weeks)</Label>
+              <Input
+                id="course-weeks"
+                type="number"
+                min={1}
+                max={52}
+                value={draft.durationWeeks ?? ""}
+                onChange={(e) => set("durationWeeks", e.target.value === "" ? null : Number(e.target.value))}
+                placeholder="at ~10 h/week"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="course-phase">Phase</Label>
+              <Input
+                id="course-phase"
+                list="course-phase-options"
+                value={draft.phase}
+                onChange={(e) => set("phase", e.target.value)}
+                placeholder="Foundations"
+              />
+              <datalist id="course-phase-options">
+                {PHASE_SUGGESTIONS.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
             <Label htmlFor="course-url">URL</Label>
             <Input
               id="course-url"
@@ -154,17 +219,33 @@ export function CourseDialog({
             />
           </div>
 
+          <div className="grid gap-2">
+            <Label htmlFor="course-modules">Syllabus checklist — one module per line</Label>
+            <Textarea
+              id="course-modules"
+              value={modulesText}
+              onChange={(e) => setModulesText(e.target.value)}
+              placeholder={"Week 1 · …\nWeek 2 · …"}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Checking the last module on the card completes the course. Renaming a line resets its
+              check.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Start month</Label>
               <Select
-                value={String(draft.targetStartMonth)}
-                onValueChange={(v) => set("targetStartMonth", Number(v))}
+                value={draft.targetStartMonth === null ? "none" : String(draft.targetStartMonth)}
+                onValueChange={(v) => set("targetStartMonth", v === "none" ? null : Number(v))}
               >
                 <SelectTrigger aria-label="Start month">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">Unscheduled</SelectItem>
                   {months.map((m) => (
                     <SelectItem key={m} value={String(m)}>
                       M{m} · {formatMonth(monthISOForIndex(profile, m))}
@@ -173,7 +254,7 @@ export function CourseDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               <Label>Hiring weight</Label>
               <Select
                 value={draft.hiringWeight}
@@ -193,7 +274,7 @@ export function CourseDialog({
             </div>
           </div>
 
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label>Status</Label>
             <Select value={draft.status} onValueChange={(v) => set("status", v as Draft["status"])}>
               <SelectTrigger aria-label="Status">
@@ -210,8 +291,13 @@ export function CourseDialog({
           </div>
 
           <div className="grid gap-3 border-t pt-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="course-aid">Coursera Financial Aid applies</Label>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="course-aid">Track Financial Aid</Label>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Off by default — Coursera Plus covers the catalog.
+                </p>
+              </div>
               <Switch
                 id="course-aid"
                 checked={draft.aidApplicable}
@@ -221,7 +307,7 @@ export function CourseDialog({
 
             {draft.aidApplicable && (
               <>
-                <div className="grid gap-1.5">
+                <div className="grid gap-2">
                   <Label>Aid status</Label>
                   <Select
                     value={draft.financialAidStatus}
@@ -240,7 +326,7 @@ export function CourseDialog({
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="grid gap-1.5">
+                  <div className="grid gap-2">
                     <Label htmlFor="aid-applied">Applied on</Label>
                     <Input
                       id="aid-applied"
@@ -249,7 +335,7 @@ export function CourseDialog({
                       onChange={(e) => set("aidAppliedDate", e.target.value || null)}
                     />
                   </div>
-                  <div className="grid gap-1.5">
+                  <div className="grid gap-2">
                     <Label htmlFor="aid-approved">Approved on</Label>
                     <Input
                       id="aid-approved"

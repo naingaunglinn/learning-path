@@ -103,11 +103,11 @@ function StoryDialog({
           <DialogTitle>{story ? "Edit STAR story" : "Add STAR story"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label htmlFor="st-title">Title</Label>
             <Input id="st-title" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <Label>Competencies</Label>
             <div className="flex flex-wrap gap-x-4 gap-y-1.5">
               {competencies.map((c) => (
@@ -123,7 +123,7 @@ function StoryDialog({
             </div>
           </div>
           {fields.map((f) => (
-            <div key={f.key} className="grid gap-1.5">
+            <div key={f.key} className="grid gap-2">
               <Label htmlFor={`st-${f.key}`}>{f.label}</Label>
               <Textarea
                 id={`st-${f.key}`}
@@ -171,7 +171,7 @@ function StoryRow({ story, onEdit, onDelete }: { story: StarStory; onEdit: () =>
           <span className="truncate text-[13px] font-medium">{story.title}</span>
           <span className="hidden flex-wrap gap-1 sm:flex">
             {story.competencyTags.map((c) => (
-              <span key={c} className="inline-flex h-5 items-center rounded-md border px-1.5 text-[10px] text-muted-foreground">
+              <span key={c} className="inline-flex h-5 items-center rounded-full bg-foreground px-2 text-[10px] font-medium text-background">
                 {COMPETENCY_LABEL[c]}
               </span>
             ))}
@@ -205,8 +205,8 @@ function StoryRow({ story, onEdit, onDelete }: { story: StarStory; onEdit: () =>
             <div className="grid gap-3 py-2 pl-6 sm:grid-cols-2">
               {parts.map(([label, text]) => (
                 <div key={label}>
-                  <div className="text-[9px] font-medium tracking-[0.14em] text-muted-foreground uppercase">{label}</div>
-                  <p className="mt-0.5 text-[13px] leading-relaxed">{text || "—"}</p>
+                  <div className="text-label text-muted-foreground uppercase">{label}</div>
+                  <p className="mt-1 text-body-sm">{text || "—"}</p>
                 </div>
               ))}
             </div>
@@ -246,7 +246,7 @@ export function Stories() {
                 onClick={() => setFilter(c)}
                 aria-pressed={filter === c}
                 className={cn(
-                  "h-6 rounded-md px-2 text-xs font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring/60",
+                  "h-7 rounded-full px-3 text-chip outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring/60",
                   filter === c ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >

@@ -53,20 +53,44 @@ export const courseStatuses = ["not_started", "in_progress", "completed"] as con
 export const hiringWeights = ["high", "medium", "checkbox"] as const;
 export const financialAidStatuses = ["not_applied", "applied", "approved", "denied"] as const;
 
+/** One checkable unit inside a course — a Coursera week/module, or a
+    specialization's sub-course. Seeded from the real syllabus. */
+export const CourseModuleSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  done: z.boolean().default(false),
+  completedDate: isoDate.nullable().default(null),
+});
+export type CourseModule = z.infer<typeof CourseModuleSchema>;
+
 export const CourseSchema = z.object({
   ...entityBase,
   title: z.string().min(1),
   provider: z.string().default(""),
-  duration: z.string().default(""), // e.g. "3 mo"
-  targetStartMonth: z.number().int().min(1).max(18), // position in the 18-month roadmap
+  duration: z.string().default(""), // display copy, e.g. "3 courses · ~95 h"
+  /* Position in the 18-month roadmap. Null = unscheduled — such rows render
+     in an "Unscheduled" bucket rather than being dropped; a dropped row is
+     indistinguishable from a bug. */
+  targetStartMonth: z.number().int().min(1).max(18).nullable().default(null),
+  /* Day-precise start set by "Replan from today"; overrides the
+     month-derived start when present (see courseStartISO). */
+  plannedStartDate: isoDate.nullable().default(null),
+  /* Planned effort at ~10 h/week; drives the target-finish date and the
+     "wk n of m" progress readout. Null = open-ended (self-study). */
+  durationWeeks: z.number().int().min(1).max(52).nullable().default(null),
+  /* Which stretch of the path this belongs to, e.g. "Foundations". */
+  phase: z.string().default(""),
+  /* Syllabus checklist. Checking the last item completes the course;
+     rows from before v10 parse to [] and get filled by migration. */
+  modules: z.array(CourseModuleSchema).default([]),
   status: z.enum(courseStatuses).default("not_started"),
   hiringWeight: z.enum(hiringWeights).default("medium"),
   url: z.string().default(""),
   completedDate: isoDate.nullable().default(null), // stamped when status -> completed; Portfolio reads it
-  /* Coursera Financial Aid tracking. Aid review ~15 days; approval opens
-     a 180-day completion window (completionDeadline is derived, never
-     hand-edited — see lib/aid.ts). */
-  aidApplicable: z.boolean().default(true), // false for self-study rows
+  /* Coursera Financial Aid tracking — legacy since the Coursera Plus
+     subscription (2026-08): off by default, kept for imported workspaces
+     that tracked aid windows (see lib/aid.ts). */
+  aidApplicable: z.boolean().default(false),
   financialAidStatus: z.enum(financialAidStatuses).default("not_applied"),
   aidAppliedDate: isoDate.nullable().default(null),
   aidApprovedDate: isoDate.nullable().default(null),
@@ -211,6 +235,29 @@ export const StarStorySchema = z.object({
 });
 export type StarStory = z.infer<typeof StarStorySchema>;
 
+/** One checked-off lesson (a topic inside a course module). The row id IS
+    the deterministic lesson id (`<moduleId>-tNN`) from lib/topics.ts; lesson
+    titles stay in code (lib/module-topics.ts), only the check state is
+    stored. A separate collection so pre-topic bundles can never strip it. */
+export const TopicCheckSchema = z.object({
+  ...entityBase,
+  completedDate: isoDate.nullable().default(null),
+});
+export type TopicCheck = z.infer<typeof TopicCheckSchema>;
+
+/** Calendar entries logged from the Learning day panel: study time + notes. */
+export const dayEventKinds = ["study", "note"] as const;
+
+export const DayEventSchema = z.object({
+  ...entityBase,
+  date: isoDate,
+  title: z.string().min(1),
+  kind: z.enum(dayEventKinds).default("study"),
+  courseId: z.string().nullable().default(null),
+  minutes: z.number().int().min(0).nullable().default(null),
+});
+export type DayEvent = z.infer<typeof DayEventSchema>;
+
 /* ------------------------------------------------------------------ */
 /* Cross-cutting                                                       */
 /* ------------------------------------------------------------------ */
@@ -238,6 +285,9 @@ export const ProfileSchema = z.object({
   timelineMonths: z.number().int().min(1).default(18),
   targetDate: isoDate, // the date the countdown KPI points at
   targetLabel: z.string().default("target date"),
+  /* Deadlines derived to a date before this never render as overdue —
+     the workspace can't be late on a deadline it never had. */
+  workspaceCreatedAt: isoDate.default(() => new Date().toISOString().slice(0, 10)),
 });
 export type Profile = z.infer<typeof ProfileSchema>;
 
@@ -259,6 +309,8 @@ export const collectionSchemas = {
   achievements: AchievementSchema,
   certifications: CertificationSchema,
   stories: StarStorySchema,
+  dayEvents: DayEventSchema,
+  topicProgress: TopicCheckSchema,
   activity: ActivityEventSchema,
 } as const;
 
@@ -270,10 +322,14 @@ export const ExportEnvelopeSchema = z.object({
   version: z.literal(1),
   exportedAt: isoDateTime,
   profile: ProfileSchema,
+  /* Each collection defaults to [] so backups from before a collection
+     existed still import cleanly. */
   data: z.object(
     Object.fromEntries(
-      Object.entries(collectionSchemas).map(([k, schema]) => [k, z.array(schema)])
-    ) as { [K in CollectionKey]: z.ZodArray<(typeof collectionSchemas)[K]> }
+      Object.entries(collectionSchemas).map(([k, schema]) => [k, z.array(schema).default([])])
+    ) as {
+      [K in CollectionKey]: z.ZodDefault<z.ZodArray<(typeof collectionSchemas)[K]>>;
+    }
   ),
 });
 export type ExportEnvelope = z.infer<typeof ExportEnvelopeSchema>;
