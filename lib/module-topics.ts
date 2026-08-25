@@ -67,51 +67,8 @@ export const MODULE_TOPICS: Record<string, string[]> = {
     "GDP data extraction project",
   ],
 
-  /* -------- Machine Learning Specialization -------- */
-  "co-ml-spec-m01": [
-    "Linear regression for prediction",
-    "Logistic regression for binary classification",
-    "Gradient descent and model optimization",
-    "Feature engineering and preprocessing",
-    "NumPy and scikit-learn in Python",
-  ],
-  "co-ml-spec-m02": [
-    "Neural networks with TensorFlow",
-    "Multi-class classification",
-    "Decision trees, random forests, boosted trees",
-    "ML best practices and generalization",
-    "Transfer learning and data ethics",
-  ],
-  "co-ml-spec-m03": [
-    "Clustering and anomaly detection",
-    "Dimensionality reduction",
-    "Collaborative filtering recommenders",
-    "Content-based deep learning recommendations",
-    "Deep reinforcement learning model",
-  ],
-
-  /* -------- Generative AI for Software Development -------- */
-  "co-genai-swdev-m01": [
-    "How LLMs work, for developers",
-    "Prompt engineering and prompt patterns",
-    "AI-assisted bug fixing and code quality",
-    "Rapid prototyping with AI",
-    "AI-assisted code review",
-  ],
-  "co-genai-swdev-m02": [
-    "AI-generated test suites",
-    "Automated technical documentation",
-    "Dependency analysis and package management",
-    "Security testing with AI",
-    "AI-assisted debugging in teams",
-  ],
-  "co-genai-swdev-m03": [
-    "AI-guided software architecture design",
-    "Database design and query optimization",
-    "Advanced design patterns with LLMs",
-    "Secure coding with AI verification",
-    "OpenAI API integration and performance tuning",
-  ],
+  /* v12: co-ml-spec and co-genai-swdev topic lists removed with their
+     courses (capacity cut). */
 
   /* -------- Generative AI Engineering with LLMs (IBM) -------- */
   "co-ibm-genai-m01": [

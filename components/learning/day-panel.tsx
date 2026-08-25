@@ -159,6 +159,15 @@ export function DayPanel({
                         <Chip tone="ghost" className="uppercase">
                           {TYPE_LABEL[ev.type]}
                         </Chip>
+                        {ev.session && (
+                          <Chip
+                            tone={ev.session.type === "apply" || ev.session.type === "ship" ? "win" : "ghost"}
+                            className="uppercase"
+                          >
+                            {ev.session.type}
+                          </Chip>
+                        )}
+                        {ev.session?.source === "derived" && <Chip tone="ghost">derived</Chip>}
                         {typeof ev.minutes === "number" && ev.minutes > 0 && (
                           <Chip tone="neutral">{ev.minutes}m</Chip>
                         )}
@@ -182,7 +191,7 @@ export function DayPanel({
                             Edit course
                           </Button>
                         )}
-                        {(ev.refKind === "milestone" || ev.refKind === "critical") && (
+                        {(ev.refKind === "milestone" || ev.refKind === "critical" || ev.refKind === "gapProject") && (
                           <Button asChild variant="ghost" size="xs" className="text-muted-foreground">
                             <Link href="/tracker">
                               Open tracker <ArrowUpRight data-icon="inline-end" />
@@ -200,6 +209,37 @@ export function DayPanel({
                           </Button>
                         )}
                       </div>
+                      {/* The generated session's exact unit of work: items,
+                          minutes, and what exists at the end. */}
+                      {ev.session && (ev.session.items.length > 0 || ev.session.output) && (
+                        <div className="mt-1.5 space-y-1">
+                          {ev.session.items.length > 0 && (
+                            <ul className="space-y-0.5">
+                              {ev.session.items.slice(0, 8).map((it, i) => (
+                                <li
+                                  key={i}
+                                  className="flex items-baseline gap-1.5 text-meta text-muted-foreground"
+                                >
+                                  <span className="text-subtle" aria-hidden>
+                                    ·
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    {it.title}
+                                    {it.part ? ` (${it.part})` : ""}
+                                  </span>
+                                  <span className="shrink-0 tabular-nums">{it.minutes}m</span>
+                                </li>
+                              ))}
+                              {ev.session.items.length > 8 && (
+                                <li className="pl-3 text-meta text-subtle">
+                                  +{ev.session.items.length - 8} more
+                                </li>
+                              )}
+                            </ul>
+                          )}
+                          <div className="text-meta text-green-ink">→ {ev.session.output}</div>
+                        </div>
+                      )}
                     </div>
                   </li>
                 );

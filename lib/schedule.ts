@@ -13,12 +13,42 @@ import { courseStartISO } from "./aid";
 
 /* One subject per day — a second course in the same sitting pays a
    context-switch tax and 30-minute fragments never reach depth:
-   Mon–Sat belong to the main path; Sunday is the warm-up deep block
-   (same 3 h/week rate), and once the warm-up track ends, the open-ended
-   self-study hour takes over the Sunday slot. */
-export const MAIN_DAILY_MINUTES = 90; // main path: Mon–Sat ≈ 9 h/week
-export const WARMUP_BLOCK_MINUTES = 180; // warm-up: one Sunday deep block ≈ 3 h/week
-export const ONGOING_WEEKLY_MINUTES = 60; // open-ended self-study: Sundays, after warm-up ends
+   Mon–Fri belong to the main path, Saturday to the gap-project track
+   (lib/study-plan.ts), and Sunday is the warm-up deep block. Open-ended
+   rows, if any return, take the Sunday hour after the warm-up ends. */
+
+export type StudyCapacity = {
+  /** Main path: Mon–Fri primary block. */
+  mainMinutes: number;
+  /** Gap-project track: the Saturday block. */
+  projectMinutes: number;
+  /** Warm-up track: one Sunday deep block. */
+  deepMinutes: number;
+  /** Open-ended rows: the Sunday hour once the warm-up track ends. */
+  ongoingMinutes: number;
+  /** Closed-book recall folded into the head of an existing block. */
+  retrievalMinutes: number;
+  /** Days after a module's last content session: spaced repetition. */
+  retrievalOffsets: number[];
+  /** Learn's ceiling share of scheduled minutes in a rolling 4-week window. */
+  learnCap: number;
+};
+
+/** The one capacity object — call sites must not hardcode these numbers. */
+export const STUDY_CAPACITY: StudyCapacity = {
+  mainMinutes: 90, // ≈ 7.5 h/week
+  projectMinutes: 90, // ≈ 1.5 h/week
+  deepMinutes: 180, // ≈ 3 h/week
+  ongoingMinutes: 60,
+  retrievalMinutes: 12,
+  retrievalOffsets: [1, 7, 30],
+  learnCap: 0.6,
+};
+
+/* Named aliases for the daily-fill + pace copy call sites. */
+export const MAIN_DAILY_MINUTES = STUDY_CAPACITY.mainMinutes;
+export const WARMUP_BLOCK_MINUTES = STUDY_CAPACITY.deepMinutes;
+export const ONGOING_WEEKLY_MINUTES = STUDY_CAPACITY.ongoingMinutes;
 
 export const isWarmupPhase = (phase: string) => phase.toLowerCase().startsWith("warm-up");
 

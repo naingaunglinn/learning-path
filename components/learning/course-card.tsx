@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowUpRight,
+  Award,
   BookOpen,
   Check,
   ChevronDown,
@@ -194,6 +195,13 @@ export function CourseCard({
                   <BookOpen /> Course page
                 </Link>
               </DropdownMenuItem>
+              {done && course.credentialUrl && (
+                <DropdownMenuItem asChild>
+                  <a href={course.credentialUrl} target="_blank" rel="noreferrer">
+                    <Award /> View certificate
+                  </a>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onSelect={onEdit}>
                 <Pencil /> Edit
               </DropdownMenuItem>

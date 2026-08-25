@@ -95,12 +95,13 @@ export function Completions() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="truncate text-[13px] font-medium">{c.title}</span>
-                      {c.url && (
+                      {(c.credentialUrl || c.url) && (
                         <a
-                          href={c.url}
+                          href={c.credentialUrl || c.url}
                           target="_blank"
                           rel="noreferrer"
-                          aria-label={`Open ${c.title}`}
+                          aria-label={c.credentialUrl ? `Open certificate for ${c.title}` : `Open ${c.title}`}
+                          title={c.credentialUrl ? "View certificate" : undefined}
                           className="rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
                         >
                           <ArrowUpRight className="size-3.5" />

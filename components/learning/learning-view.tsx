@@ -293,6 +293,8 @@ export function LearningView() {
   const milestones = useCollection("milestones");
   const critical = useCollection("critical");
   const dayEvents = useCollection("dayEvents");
+  const topicProgress = useCollection("topicProgress");
+  const gapProjects = useCollection("gapProjects");
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -330,8 +332,8 @@ export function LearningView() {
 
   const courseById = useMemo(() => new Map(courses.map((c) => [c.id, c])), [courses]);
   const events = useMemo(
-    () => deriveCalendarEvents({ courses, milestones, critical, dayEvents, profile }),
-    [courses, milestones, critical, dayEvents, profile]
+    () => deriveCalendarEvents({ courses, milestones, critical, dayEvents, topicProgress, gapProjects, profile }),
+    [courses, milestones, critical, dayEvents, topicProgress, gapProjects, profile]
   );
   const visibleEvents = useMemo(
     () =>

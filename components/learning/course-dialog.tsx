@@ -44,6 +44,7 @@ const EMPTY: Draft = {
   status: "not_started",
   hiringWeight: "medium",
   completedDate: null,
+  credentialUrl: "",
   /* Coursera Plus covers the catalog — aid tracking is legacy, off by default. */
   aidApplicable: false,
   financialAidStatus: "not_applied",
@@ -215,6 +216,17 @@ export function CourseDialog({
               value={draft.url}
               onChange={(e) => set("url", e.target.value)}
               placeholder="https://coursera.org/…"
+              inputMode="url"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="course-credential">Certificate URL — paste the verify link once earned</Label>
+            <Input
+              id="course-credential"
+              value={draft.credentialUrl}
+              onChange={(e) => set("credentialUrl", e.target.value)}
+              placeholder="https://coursera.org/verify/…"
               inputMode="url"
             />
           </div>

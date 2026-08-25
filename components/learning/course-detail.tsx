@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
+  Award,
   Check,
   ChevronDown,
   Pencil,
@@ -142,7 +143,7 @@ export function CourseDetail() {
     ? { minutes: ONGOING_WEEKLY_MINUTES, copy: "1 h · Sundays" }
     : warm
       ? { minutes: WARMUP_BLOCK_MINUTES, copy: "3 h · one Sunday block" }
-      : { minutes: MAIN_DAILY_MINUTES, copy: "90 min · Mon–Sat" };
+      : { minutes: MAIN_DAILY_MINUTES, copy: "90 min · Mon–Fri" };
 
   const slot =
     course.targetStartMonth !== null
@@ -250,11 +251,23 @@ export function CourseDetail() {
                 <Play data-icon="inline-start" /> Start course
               </Button>
             )}
-            {done && (
+            {done && course.credentialUrl && (
               <Button
                 size="sm"
                 variant="ghost"
                 className="bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                asChild
+              >
+                <a href={course.credentialUrl} target="_blank" rel="noreferrer">
+                  <Award data-icon="inline-start" /> View certificate
+                </a>
+              </Button>
+            )}
+            {done && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white/70 hover:bg-white/10 hover:text-white"
                 onClick={() => reopenCourse(course)}
               >
                 Reopen
