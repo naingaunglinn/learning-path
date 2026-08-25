@@ -65,7 +65,11 @@ type Seed = { [K in keyof CollectionType]: Array<Omit<CollectionType[K], "create
    Machine Learning Specialization (~95 h, optional depth). PostgreSQL gets
    14 weeks, the RAG certificate 11. Saturdays belong to the gap-project
    track (gp-adr → gp-rag → gp-llm-feature → gp-sre; lib/study-plan.ts),
-   so the main path runs Mon–Fri. */
+   so the main path runs Mon–Fri.
+
+   v13 — Cert #1 is real: Generative AI with LLMs completed 2026-08-25,
+   certificate verified (GENAI_CERT below). The seed now starts one course
+   in: fresh workspaces chain from Python onward. */
 
 
 /** Deterministic module rows from syllabus titles — ids are stable so the
@@ -78,6 +82,14 @@ const mods = (courseId: string, titles: string[]) =>
     completedDate: null,
   }));
 
+/* Cert #1, earned. Transcribed from the certificate itself (2026-08-25);
+   the v13 migration and the credential heal in storage.ts read this too. */
+export const GENAI_CERT = {
+  courseId: "co-genai-llms",
+  date: "2026-08-25",
+  url: "https://coursera.org/verify/WP6RBUW4EY76",
+} as const;
+
 export const seedCourses: Seed["courses"] = [
   /* -------- Phase 1 · Foundations (M1–M2 · Aug–Sep 2026) --------
      Just enough vocabulary and Python fluency to start building. Nothing
@@ -85,14 +97,14 @@ export const seedCourses: Seed["courses"] = [
   { id: "co-genai-llms", tags: ["ai"], phase: "Foundations",
     title: "Generative AI with Large Language Models",
     provider: "DeepLearning.AI + AWS", duration: "~17 h", durationWeeks: 2, targetStartMonth: 1, plannedStartDate: null,
-    status: "in_progress", hiringWeight: "high",
+    status: "completed", hiringWeight: "high",
     url: "https://www.coursera.org/learn/generative-ai-with-llms",
     modules: mods("co-genai-llms", [
       "Week 1 · Generative AI use cases, project lifecycle, and model pre-training",
       "Week 2 · Fine-tuning and evaluating large language models",
       "Week 3 · Reinforcement learning and LLM-powered applications",
-    ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    ]).map((m) => ({ ...m, done: true, completedDate: GENAI_CERT.date })),
+    completedDate: GENAI_CERT.date, credentialUrl: GENAI_CERT.url, aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   { id: "co-python-ai", tags: ["ai", "python"], phase: "Foundations",
     title: "Python for Data Science, AI & Development",
@@ -106,7 +118,7 @@ export const seedCourses: Seed["courses"] = [
       "Module 4 · Working with Data in Python",
       "Module 5 · APIs and Data Collection",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
 
   /* -------- Phase 2 · GenAI engineering (M2–M8) --------
@@ -132,7 +144,7 @@ export const seedCourses: Seed["courses"] = [
       "Course 9 · Build AI Agents using MCP",
       "Course 10 · RAG and Agentic AI Capstone Project",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   /* The depth pass, now AFTER the applied cert rather than before it.
      Courses 6–7 overlap heavily with the RAG certificate above — skim those
@@ -152,7 +164,7 @@ export const seedCourses: Seed["courses"] = [
       "Course 6 · Fundamentals of AI Agents Using RAG and LangChain (skim — overlaps cert above)",
       "Course 7 · Project: Generative AI Applications with RAG and LangChain (skim — overlaps cert above)",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   /* v12: Machine Learning Specialization (95 h) CUT — optional depth that
      didn't survive the capacity audit. Its seed milestone went with it. */
@@ -177,7 +189,7 @@ export const seedCourses: Seed["courses"] = [
       "Unit 4: Networking",
       "Unit 5: Interviewing For a Job",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   /* MOVED UP FROM M13. It was scheduled three months after applications
      opened. 11 h is cheap; it teaches the format, not the content — the
@@ -193,7 +205,7 @@ export const seedCourses: Seed["courses"] = [
       "Module 3 · Introduction to Algorithms",
       "Module 4 · Final project",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
 
   /* -------- Phase 4 · Production & cloud (M9 · Apr 2027) --------
@@ -211,7 +223,7 @@ export const seedCourses: Seed["courses"] = [
       "Course 3 · Logging and Monitoring in Google Cloud",
       "Course 4 · Getting Started with Google Kubernetes Engine",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   /* -------- Warm-up · parallel track (M1–M12, ~3 h/week on top) --------
      8 years of experience that is really 2 years × 4 loops: these backfill
@@ -233,7 +245,7 @@ export const seedCourses: Seed["courses"] = [
       "Module 5 · Connecting to the Internet",
       "Module 6 · Troubleshooting and the Future of Networking",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   /* REPLACES the "System design self-study / Sundays" row. Keeps the id so
      existing references survive. 6 h, but density is high: load balancers,
@@ -257,7 +269,7 @@ export const seedCourses: Seed["courses"] = [
       "Apply · Design write-up: news feed + notifications",
       "Apply · Design write-up: payment system + ledger (mine from Horse Support)",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   /* REPLACES "Use the Index, Luke". Guided, autograded, and timed to run
      alongside the RAG build — course 3 teaches GIN reverse indexes and
@@ -278,7 +290,7 @@ export const seedCourses: Seed["courses"] = [
       "Apply · Index audit on the Car Rental DB — before/after query plans",
       "Apply · Hybrid search for gp-rag using ts_vector alongside pgvector",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   { id: "co-warmup-patterns", tags: ["fundamentals", "architecture"], phase: "Warm-up",
     title: "Design Patterns",
@@ -291,7 +303,7 @@ export const seedCourses: Seed["courses"] = [
       "Module 3 · Working with Design Patterns & Anti-patterns",
       "Module 4 · Capstone Challenge",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   /* NEW — the architecture half of the retired system-design row. Same
      provider and specialization as Design Patterns above (it is course 3 of
@@ -311,7 +323,7 @@ export const seedCourses: Seed["courses"] = [
       "Module 4 · Capstone challenge",
       "Apply · Re-document one MML system as an architecture ADR",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   /* MOVED BACK FROM M3. At M3 it collided with the RAG certificate and hit
      ~12.5 h/week in the first quarter, when the habit is still fragile. Here
@@ -331,7 +343,7 @@ export const seedCourses: Seed["courses"] = [
       "Module 5 · Dynamic Programming 1",
       "Module 6 · Dynamic Programming 2",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
   /* Kept self-directed by request — the only non-Coursera row left. */
   { id: "co-warmup-security", tags: ["fundamentals", "security"], phase: "Warm-up",
@@ -345,7 +357,7 @@ export const seedCourses: Seed["courses"] = [
       "Hardening pass on one MML production system",
       "Write-up · findings, fixes & lessons",
     ]),
-    completedDate: null, aidApplicable: false, financialAidStatus: "not_applied",
+    completedDate: null, credentialUrl: "", aidApplicable: false, financialAidStatus: "not_applied",
     aidAppliedDate: null, aidApprovedDate: null, completionDeadline: null },
 ];
 
@@ -492,8 +504,8 @@ const seed: Seed = {
       refType: "custom", refId: null, done: false, carriedOver: 0, tags: [] },
     { id: "wk-3", weekStart: weekStartISO(), title: "Book passport renewal appointment",
       refType: "critical", refId: "cp-passport", done: false, carriedOver: 1, tags: [] },
-    { id: "wk-4", weekStart: weekStartISO(), title: "Generative AI with LLMs — Module 2 + lab",
-      refType: "course", refId: "co-genai-llms", done: false, carriedOver: 0, tags: [] },
+    { id: "wk-4", weekStart: weekStartISO(), title: "Python for DS, AI & Development — Module 1",
+      refType: "course", refId: "co-python-ai", done: false, carriedOver: 0, tags: [] },
   ],
 
   resumeFixes: [

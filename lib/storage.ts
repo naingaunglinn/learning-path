@@ -9,7 +9,7 @@ import {
   Profile,
   ProfileSchema,
 } from "./schemas";
-import { buildSeedData, seedCourses, seedGapProjects, seedMilestones, seedProfile } from "./seed-data";
+import { buildSeedData, GENAI_CERT, seedCourses, seedGapProjects, seedMilestones, seedProfile } from "./seed-data";
 import { rescheduleFrom } from "./schedule";
 import { newId } from "./id";
 
@@ -63,8 +63,15 @@ const ACTIVITY_CAP = 50;
    milestone cut, PostgreSQL 14 wks / RAG cert 11 wks) merges into existing
    stores v5-style — seed content wins, user progress fields and per-module
    check state survive by id — then the chains replan without restarting
-   the in-progress course. */
-const SCHEMA_VERSION = 12;
+   the in-progress course.
+   v13: courses gained credentialUrl (the earned certificate's verify link)
+   and Cert #1 landed — Generative AI with LLMs, completed 2026-08-25.
+   v12 -> v13 stamps that course completed with its certificate, checks
+   its syllabus, logs the completion, and re-chains the queue so the next
+   course's daily plan starts immediately. Because a stale pre-v13 tab
+   strips the new key on any courses write (the v11 lesson), the
+   certificate is re-stamped on every load, not just at migration. */
+const SCHEMA_VERSION = 13;
 
 /* Roadmap re-sequencing applied to the five known seed courses on migration. */
 const V3_SEED_COURSE_MONTHS: Record<string, number> = {
@@ -389,6 +396,65 @@ function migrateV11toV12() {
   migrateV9toV10();
 }
 
+/** Raw-write an activity event from inside a migration (the stores are
+    not up yet at that point). Best-effort — never blocks a migration. */
+function prependActivity(kind: "completed" | "updated", message: string) {
+  try {
+    const rows: unknown[] = JSON.parse(backend.read(`${NS}:activity`) ?? "[]");
+    rows.unshift({ id: newId(), at: new Date().toISOString(), kind, message });
+    backend.write(`${NS}:activity`, JSON.stringify(rows.slice(0, ACTIVITY_CAP)));
+  } catch {
+    /* activity is a nice-to-have */
+  }
+}
+
+/** Cert #1 (2026-08-25): Generative AI with LLMs was completed for real —
+    stamp the course row completed with its certificate, check its whole
+    syllabus (shared backfill), log the completion, and pull the queue
+    forward so the next course's daily plan starts immediately. Progress
+    the user already recorded (an earlier completion date) survives. */
+function migrateV12toV13() {
+  try {
+    const rows: Array<Record<string, unknown>> = JSON.parse(backend.read(`${NS}:courses`) ?? "[]");
+    const row = rows.find((r) => r.id === GENAI_CERT.courseId);
+    if (!row) return; // course deleted by the user — nothing to certify
+    const wasCompleted = row.status === "completed";
+    if (!wasCompleted) {
+      row.status = "completed";
+      row.completedDate = GENAI_CERT.date;
+    }
+    if (!row.credentialUrl) row.credentialUrl = GENAI_CERT.url;
+    row.updatedAt = new Date().toISOString();
+    backfillCourseModules(rows); // completed ⇒ every module stamped
+    backend.write(`${NS}:courses`, JSON.stringify(rows));
+    if (!wasCompleted) {
+      prependActivity("completed", "Course completed: Generative AI with Large Language Models — Cert #1 earned");
+      replanCoursesFromToday({ restartInProgress: false });
+    }
+  } catch {
+    /* unreadable courses payload — reads degrade via safeParse */
+  }
+}
+
+/** credentialUrl is one new key on one row — exactly what a stale pre-v13
+    tab strips on any courses write (Zod drops unknown keys). Re-stamp the
+    earned certificate whenever its completed course is missing it; runs on
+    every load, like healStrippedModules. */
+function healSeedCredential() {
+  try {
+    const raw = backend.read(`${NS}:courses`);
+    if (!raw) return;
+    const rows: Array<Record<string, unknown>> = JSON.parse(raw);
+    const row = rows.find((r) => r.id === GENAI_CERT.courseId);
+    if (!row || row.status !== "completed" || row.credentialUrl) return;
+    row.credentialUrl = GENAI_CERT.url;
+    row.updatedAt = new Date().toISOString();
+    backend.write(`${NS}:courses`, JSON.stringify(rows));
+  } catch {
+    /* unreadable payload — reads degrade to [] */
+  }
+}
+
 const isBrowser = typeof window !== "undefined";
 
 const backend = {
@@ -446,6 +512,7 @@ export function ensureSeeded() {
       const version = JSON.parse(rawMeta).schemaVersion;
       if (version === SCHEMA_VERSION) {
         healStrippedModules();
+        healSeedCredential();
         return;
       }
       if (version >= 2 && version < SCHEMA_VERSION) {
@@ -459,6 +526,7 @@ export function ensureSeeded() {
            stores whose checklists were stripped by a stale pre-v10 tab. */
         if (version <= 10) migrateV9toV10();
         if (version <= 11) migrateV11toV12();
+        if (version <= 12) migrateV12toV13();
         backend.write(
           META_KEY,
           JSON.stringify({ migratedAt: new Date().toISOString(), schemaVersion: SCHEMA_VERSION })

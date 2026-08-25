@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
+  Award,
   Check,
   ChevronDown,
   Pencil,
@@ -250,11 +251,23 @@ export function CourseDetail() {
                 <Play data-icon="inline-start" /> Start course
               </Button>
             )}
-            {done && (
+            {done && course.credentialUrl && (
               <Button
                 size="sm"
                 variant="ghost"
                 className="bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                asChild
+              >
+                <a href={course.credentialUrl} target="_blank" rel="noreferrer">
+                  <Award data-icon="inline-start" /> View certificate
+                </a>
+              </Button>
+            )}
+            {done && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white/70 hover:bg-white/10 hover:text-white"
                 onClick={() => reopenCourse(course)}
               >
                 Reopen

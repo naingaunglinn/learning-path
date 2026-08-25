@@ -87,6 +87,10 @@ export const CourseSchema = z.object({
   hiringWeight: z.enum(hiringWeights).default("medium"),
   url: z.string().default(""),
   completedDate: isoDate.nullable().default(null), // stamped when status -> completed; Portfolio reads it
+  /* Verify link for the earned certificate (Coursera's "Verify at" URL).
+     Completed courses ARE the completion records (see Completions), so the
+     credential lives here rather than as a duplicate external-cert row. */
+  credentialUrl: z.string().default(""),
   /* Coursera Financial Aid tracking — legacy since the Coursera Plus
      subscription (2026-08): off by default, kept for imported workspaces
      that tracked aid windows (see lib/aid.ts). */

@@ -62,10 +62,24 @@ ok(
 
 const recallItems = plan.sessions.flatMap((s) => s.items.filter((i) => i.title.startsWith("Recall")));
 const m01Recalls = plan.sessions.filter(
-  (s) => s.items.some((i) => i.title.includes("Recall") && i.title.includes("Generative AI use cases")) || (s.id.startsWith("co-genai-llms-m01-r"))
+  (s) => s.items.some((i) => i.title.includes("Recall") && i.title.includes("Python Basics")) || (s.id.startsWith("co-python-ai-m01-r"))
 );
 ok("spaced retrieval exists at scale", recallItems.length >= 60, `${recallItems.length} recall items`);
-ok("genai W1 gets +1/+7/+30 recalls", m01Recalls.length >= 3, `${m01Recalls.length}`);
+ok("python M1 gets +1/+7/+30 recalls", m01Recalls.length >= 3, `${m01Recalls.length}`);
+
+/* v13: Cert #1 is done — the completed course must carry its certificate
+   and contribute nothing to the forward plan. */
+const genai = data.courses.find((c) => c.id === "co-genai-llms")!;
+ok(
+  "completed course carries its certificate",
+  genai.status === "completed" && genai.completedDate === "2026-08-25" && genai.credentialUrl.includes("coursera.org/verify"),
+  `${genai.status} ${genai.completedDate} ${genai.credentialUrl}`
+);
+ok(
+  "completed course leaves the plan entirely",
+  plan.sessions.every((s) => s.courseId !== "co-genai-llms") &&
+    !plan.courseLoads.some((c) => c.courseId === "co-genai-llms")
+);
 
 const shifted = mk({}); // same-input control
 const later = generateStudyPlan(args[0], args[1], args[2], "2026-09-15", { gapProjects: data.gapProjects });
@@ -73,10 +87,10 @@ ok("replan from a later date: nothing before it", later.sessions.every((s) => s.
 ok("replan: still zero duplicate ids", new Set(later.sessions.map((s) => s.id)).size === later.sessions.length);
 ok("control rerun identical (cache-free purity)", JSON.stringify(shifted) === JSON.stringify(plan));
 
-const genai = data.courses.find((c) => c.id === "co-genai-llms")!;
-const firstFive = lessonsFor(genai.modules[0]).slice(0, 5).map((l) => l.id);
+const python = data.courses.find((c) => c.id === "co-python-ai")!;
+const firstFive = lessonsFor(python.modules[0]).slice(0, 5).map((l) => l.id);
 const advanced = mk({ checkedLessons: new Set(firstFive) });
-const minutesOf = (p: typeof plan) => p.courseLoads.find((c) => c.courseId === "co-genai-llms")!.minutes;
+const minutesOf = (p: typeof plan) => p.courseLoads.find((c) => c.courseId === "co-python-ai")!.minutes;
 ok("checked lessons leave the plan", minutesOf(advanced) < minutesOf(plan), `${minutesOf(plan)} → ${minutesOf(advanced)}`);
 
 const everyTyped = plan.sessions.every((s) => ["learn", "practice", "apply", "retrieve", "ship", "open"].includes(s.type));
